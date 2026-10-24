@@ -1,0 +1,30 @@
+name: Proposer une idée / Suggest an idea
+description: Une nouvelle fonction, une amélioration de la carte ou de l'interface
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Avant de proposer une idée, jetez un œil aux **jalons** (*Milestones*) : elle est peut-être déjà prévue.
+        *English is welcome too.*
+
+  - type: textarea
+    id: besoin
+    attributes:
+      label: Le besoin
+      description: Quelle situation en jeu cette idée améliorerait-elle ?
+    validations:
+      required: true
+
+  - type: textarea
+    id: idee
+    attributes:
+      label: L'idée
+      description: Comment l'imaginez-vous ? Une capture ou un croquis aident beaucoup.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Autres solutions envisagées

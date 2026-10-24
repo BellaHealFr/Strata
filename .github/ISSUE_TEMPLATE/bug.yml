@@ -1,0 +1,73 @@
+name: Signaler un problème / Report a problem
+description: Erreur Lua, zone mal placée, joint visible, saccade, affichage cassé
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Merci de prendre le temps de signaler ce problème ! Plus la description est précise, plus vite il sera corrigé.
+        *English is welcome too.*
+
+  - type: dropdown
+    id: type
+    attributes:
+      label: Type de problème
+      options:
+        - Erreur Lua (fenêtre d'erreur)
+        - Zone mal placée ou joint visible entre deux zones
+        - Position du joueur ou du groupe fausse
+        - Saccade ou lenteur
+        - Affichage ou interface
+        - Autre
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version de Strata
+      description: Affichée dans l'infobulle de la barre de titre de la carte, ou avec `/strata aide`.
+      placeholder: "0.1.0"
+    validations:
+      required: true
+
+  - type: input
+    id: serveur
+    attributes:
+      label: Serveur et langue du client
+      placeholder: "Way of Elendil, frFR"
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Ce qui se passe
+      description: Pour un problème d'affichage, une capture d'écran de la carte aide énormément. Indiquez la zone concernée.
+    validations:
+      required: true
+
+  - type: textarea
+    id: attendu
+    attributes:
+      label: Ce qui devrait se passer
+
+  - type: textarea
+    id: etapes
+    attributes:
+      label: Comment le reproduire
+      placeholder: |
+        1. Ouvrir la carte avec /strata…
+        2. Zoomer sur…
+        3. …
+
+  - type: textarea
+    id: erreur
+    attributes:
+      label: Message d'erreur Lua
+      description: S'il y en a un. Pour afficher les erreurs dans le jeu, tapez `/console scriptErrors 1`.
+      render: text
+
+  - type: textarea
+    id: addons
+    attributes:
+      label: Autres addons installés
+      description: Surtout les addons de carte (Mapster, Magnify, Questie, Carbonite, TomTom…).
