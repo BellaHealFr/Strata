@@ -1,0 +1,16 @@
+# Archives de distribution : publiées dans les Releases, pas dans le dépôt
+*.zip
+
+# Fichiers système et d'éditeur
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp
+*.tmp
+
+# Python
+__pycache__/
+*.pyc
+.venv/
