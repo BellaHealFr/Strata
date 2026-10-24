@@ -1,0 +1,14 @@
+## Interface: 30300
+## Title: |cffe6b85cStrata|r - Carte du monde
+## Notes: One seamless world map: Kalimdor, the Eastern Kingdoms and Northrend stitched together, free zoom and pan. /strata
+## Notes-frFR: Une seule carte du monde continue : Kalimdor, les Royaumes de l'Est et le Norfendre assemblés, zoom et déplacement libres. /strata
+## Author: BellaHealFr
+## Version: 0.1.0
+## SavedVariables: StrataDB
+## X-License: GPL-3.0-only (voir LICENSE et NOTICE.md)
+## X-Category: Map
+
+Locale.lua
+Data\Zones.lua
+Core.lua
+Map.lua
