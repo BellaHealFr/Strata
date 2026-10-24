@@ -1,0 +1,5 @@
+<Bindings>
+	<Binding name="STRATA_TOGGLE" header="STRATA">
+		Strata_Toggle()
+	</Binding>
+</Bindings>
