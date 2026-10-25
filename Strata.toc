@@ -3,7 +3,7 @@
 ## Notes: One seamless world map: Kalimdor, the Eastern Kingdoms and Northrend stitched together, free zoom and pan. /strata
 ## Notes-frFR: Une seule carte du monde continue : Kalimdor, les Royaumes de l'Est et le Norfendre assemblés, zoom et déplacement libres. /strata
 ## Author: BellaHealFr
-## Version: 0.1.0
+## Version: 0.2.0-beta.1
 ## SavedVariables: StrataDB
 ## X-License: GPL-3.0-only (voir LICENSE et NOTICE.md)
 ## X-Category: Map

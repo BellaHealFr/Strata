@@ -11,7 +11,7 @@
 
 local addonName, ns = ...
 _G.Strata = ns
-ns.version = "0.1.0"
+ns.version = "0.2.0-beta.1"
 
 local Zones = ns.Zones
 
