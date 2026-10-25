@@ -223,7 +223,8 @@ GetPlayerMapPosition = function(unit)
 		local a = i / TEST.raid * 2 * math.pi
 		return 0.5 + 0.2 * math.cos(a), 0.5 + 0.2 * math.sin(a)
 	end
-	if unit == "player" then return 0.5, 0.5 end
+	-- TEST.px / TEST.py : déplacer le joueur dans la Forêt d'Elwynn (flèche de guidage, #38).
+	if unit == "player" then return TEST.px or 0.5, TEST.py or 0.5 end
 	if unit == "party1" then return 0.6, 0.4 end
 	return 0, 0
 end

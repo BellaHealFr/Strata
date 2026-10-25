@@ -343,7 +343,7 @@ tick(1)
 local _, zoom2 = ns.view.Get()
 check(zoom2 > zoom1 and math.abs(pb.w - 18 / zoom2) < 1e-6, "après un zoom, toujours 18 px à l'écran")
 -- TomTom
-button(ns.L.PIN_TOMTOM).scripts.OnClick()
+button("TomTom").scripts.OnClick()
 local call = TomTom.calls[1]
 check(call and call[1] == 2 and call[2] == ns.maps[2].zones.Elwynn.index and math.abs(call[3] - 50) < 0.1 and math.abs(call[4] - 50) < 0.1,
 	format("TomTom : continent %s, zone %s, %.1f, %.1f", tostring(call and call[1]), tostring(call and call[2]), call and call[3] or -1, call and call[4] or -1))
@@ -380,4 +380,60 @@ check(#ns.db.pins == 1 and ns.db.pins[1] == outPin and not StrataPinCard:IsVisib
 check(button(format(ns.L.PINS, 1)) ~= nil, "le bouton de la liste suit le compte")
 ns.db.pins = {}
 TomTom = nil
+Strata_Toggle()
+
+-- #38 : flèche de guidage propre à Strata
+local function angleDiff(a, b)
+	local d = (a - b) % (2 * math.pi)
+	if d > math.pi then d = d - 2 * math.pi end
+	return math.abs(d)
+end
+local _, px, py = ns.UnitPos("player")
+ns.Follow("azeroth", px, py - 100, "Nord")
+tick(0.3)
+local arrowFrame = StrataArrow
+check(arrowFrame and arrowFrame:IsShown(), "suivre : la flèche apparaît, carte fermée")
+check(arrowFrame.distance.text:find("100", 1, true), "distance affichée : " .. tostring(arrowFrame.distance.text))
+check(angleDiff(ns.nav.angle, -1.0) < 1e-6, format("cible au nord, joueur tourné de 1 rad : flèche à %.3f rad", ns.nav.angle))
+ns.Follow("azeroth", px - 100, py, "Ouest")
+tick(0.3)
+check(angleDiff(ns.nav.angle, math.pi / 2 - 1.0) < 1e-6, format("cible à l'ouest : flèche à %.3f rad", ns.nav.angle))
+-- Temps estimé : le joueur avance vers une cible à 210 m au nord, à 7 m/s
+local h = ns.Zones[2].zones.Elwynn[2]
+ns.Follow("azeroth", px, py - 210, "Loin")
+local y0 = 0.5
+for i = 1, 100 do
+	TEST.py = y0 - (7 * 0.02 * i) / h
+	frame()
+end
+local eta = tonumber(arrowFrame.eta.text and arrowFrame.eta.text:match("(%d+)"))
+check(eta and eta >= 24 and eta <= 32, "temps estimé en avançant à 7 m/s : " .. tostring(arrowFrame.eta.text))
+TEST.py = nil
+-- Autre continent
+ns.Follow("outland", 5000, 5000, "Shattrath")
+tick(0.3)
+check(arrowFrame.distance.text == ns.L.NAV_ELSEWHERE, "cible sur un autre continent : « " .. tostring(arrowFrame.distance.text) .. " »")
+-- Arrivée : « Arrivé », puis la flèche se retire
+ns.Follow("azeroth", px + 3, py, "Ici")
+tick(0.3)
+check(arrowFrame.distance.text == ns.L.NAV_ARRIVED, "à moins de 10 m : « " .. tostring(arrowFrame.distance.text) .. " »")
+tick(3.5)
+check(not arrowFrame:IsShown() and ns.db.target == nil, "arrivé : la flèche se retire et la cible est oubliée")
+-- Clic droit : arrêter
+ns.Follow("azeroth", px, py - 100, "Nord")
+arrowFrame.scripts.OnMouseUp(arrowFrame, "RightButton")
+check(not arrowFrame:IsShown() and ns.db.target == nil, "clic droit : le guidage s'arrête")
+-- Cible retenue après un rechargement
+ns.Follow("azeroth", px, py - 100, "Nord")
+arrowFrame:Hide()
+TEST.Fire("PLAYER_LOGIN")
+check(arrowFrame:IsShown(), "cible retenue : la flèche revient à la connexion")
+ns.StopFollow()
+-- Depuis la fiche d'une épingle
+Strata_Toggle()
+local followPin = ns.AddPin("azeroth", px + 50, py)
+find(StrataFrame, function(r) return r.kind == "Button" and r.text == ns.L.PIN_FOLLOW end).scripts.OnClick()
+check(ns.db.target and ns.db.target.x == followPin.x and arrowFrame:IsShown(), "bouton « Suivre » de la fiche : la flèche guide vers l'épingle")
+ns.StopFollow()
+ns.db.pins = {}
 Strata_Toggle()

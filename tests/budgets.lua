@@ -57,6 +57,9 @@ BUDGETS = {
 	["200 épingles.déplacement.SetPoint par image"] = 2, -- [2] le canevas et la flèche, aucune épingle
 	["200 épingles.zoom.ops par image (moyenne)"] = 40,  -- [31.4] redimensionnées au zoom seulement
 
+	-- Flèche de guidage (#38) [0.2] : seulement pendant un guidage ; arrêtée, plus rien ne tourne.
+	["guidage.ops par image (carte fermée)"] = 8,       -- [6.4]
+
 	-- Compteur à l'écran (/strata debug). [0.2]
 	["compteur affiché.ops par image"] = 11,           -- [8.5]
 	["compteur affiché.UpdateAddOnMemoryUsage en 3 s"] = 2, -- [2] une lecture toutes les 2 s, pas plus

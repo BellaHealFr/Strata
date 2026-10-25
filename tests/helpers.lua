@@ -43,7 +43,9 @@ end
 function frame()
 	TEST.time = TEST.time + 0.02
 	for _, f in ipairs(TEST.updaters) do
-		if f:IsVisible() and f.scripts.OnUpdate then f.scripts.OnUpdate(f, 0.02) end
+		-- f.shown d'abord : un cadre masqué est écarté sans remonter ses parents (coût du banc,
+		-- pas de l'addon : le jeu n'appelle pas l'OnUpdate d'un cadre masqué).
+		if f.shown and f:IsVisible() and f.scripts.OnUpdate then f.scripts.OnUpdate(f, 0.02) end
 	end
 end
 

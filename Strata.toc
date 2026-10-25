@@ -14,5 +14,6 @@ Core.lua
 Map.lua
 Search.lua
 Pins.lua
+Nav.lua
 Bench.lua
 MinimapButton.lua

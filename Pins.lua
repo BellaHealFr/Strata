@@ -205,14 +205,23 @@ function CreateCard(frame)
 		card.icons[i] = b
 	end
 
+	-- Flèche de Strata (Nav.lua), qui marche sans TomTom.
+	local follow = CreateFrame("Button", nil, card, "UIPanelButtonTemplate")
+	follow:SetWidth(70)
+	follow:SetHeight(22)
+	follow:SetPoint("BOTTOMLEFT", 10, 10)
+	follow:SetText(L.PIN_FOLLOW)
+	follow:SetScript("OnClick", function()
+		if shownPin then ns.Follow(shownPin.view, shownPin.x, shownPin.y, Label(shownPin)) end
+	end)
 	tomtomButton = CreateFrame("Button", nil, card, "UIPanelButtonTemplate")
-	tomtomButton:SetWidth(120)
+	tomtomButton:SetWidth(84)
 	tomtomButton:SetHeight(22)
-	tomtomButton:SetPoint("BOTTOMLEFT", 10, 10)
-	tomtomButton:SetText(L.PIN_TOMTOM)
+	tomtomButton:SetPoint("LEFT", follow, "RIGHT", 2, 0)
+	tomtomButton:SetText("TomTom")
 	tomtomButton:SetScript("OnClick", function() if shownPin then SetTomTom(shownPin) end end)
 	local delete = CreateFrame("Button", nil, card, "UIPanelButtonTemplate")
-	delete:SetWidth(100)
+	delete:SetWidth(76)
 	delete:SetHeight(22)
 	delete:SetPoint("BOTTOMRIGHT", -10, 10)
 	delete:SetText(L.PIN_DELETE)

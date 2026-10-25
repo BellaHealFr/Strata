@@ -55,6 +55,7 @@ Il a été écrit pour le client 3.3.5, pas adapté d'une autre version du jeu. 
 - **Zone et coordonnées** sous le curseur, et pour votre position dans la barre de titre.
 
 ### Trouver un lieu
+- **Flèche de guidage** : « Suivre » sur une épingle, et une flèche à l'écran vous y mène, avec la distance et le temps restant, même carte fermée. Sans TomTom.
 - **Épingles** : Ctrl-clic sur la carte pour marquer un endroit, avec une note et une marque de raid. Une flèche **TomTom** vous y guide si TomTom est installé. Toutes vos épingles sont listées d'un clic.
 - **Recherche de zones et de villes** dans la barre du bas : tapez quelques lettres, cliquez, la carte y va. Majuscules et accents sans importance.
 
@@ -114,7 +115,7 @@ Aucune modification n'entre sans vérification automatique, budgets de performan
 | Client | 3.3.5a (build 12340), `## Interface: 30300` |
 | Langage | Lua 5.1, API WoW 3.3.5 |
 | Dépendances | aucune |
-| Code | environ 2 100 lignes, 8 fichiers, plus les rectangles de 126 cartes de zones |
+| Code | environ 2 400 lignes, 9 fichiers, plus les rectangles de 126 cartes de zones |
 
 Le fonctionnement complet est décrit dans **[docs/CONSTRUCTION.md](docs/CONSTRUCTION.md)** : données des zones, lecture des cartes du client, conversion des positions, couches de la carte, chargement et mémoire, zoom, performances et vérification.
 

@@ -168,6 +168,16 @@ budget("vue Outreterre.textures gardées pour Azeroth", loadedMapTiles(azeroth))
 viewButton(ns.L.AZEROTH).scripts.OnClick()
 tick(1)
 
+-- 6 e. Flèche de guidage (#38) : son coût par image pendant un guidage, carte fermée. Une fois
+-- arrêtée, plus rien ne tourne (budgets « fermée » plus bas).
+local _, gx, gy = ns.UnitPos("player")
+Strata_Toggle()
+ns.Follow("azeroth", gx + 300, gy - 400, "Cible")
+mean = measureFrames(150)
+budget("guidage.ops par image (carte fermée)", mean.ops)
+ns.StopFollow()
+Strata_Toggle()
+
 -- 7. Carte fermée : rien ne doit tourner, même en changeant de zone, et les textures des zones
 -- sont rendues (#22).
 Strata_Toggle()
