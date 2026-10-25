@@ -11,6 +11,7 @@
 - `/strata bench` : la phase « Immobile » attend 0,5 s avant de mesurer, pour ne plus compter la réouverture de la carte.
 
 ### Performances
+- **Recherche de zone 12 fois plus rapide.** Le nom de la zone sous la souris et sous le joueur, cherché deux fois toutes les 30 ms, passe par une grille de 32 × 32 cases au lieu de parcourir toutes les zones. Carte immobile : −44 % de travail par image au banc, survol : −59 %. Résultat identique à l'ancienne recherche, vérifié sur près de 4 000 points.
 - **Mémoire des textures divisée par près de trois en déplacement.** Les zones quittées gardent leurs textures 8 secondes, pour qu'un aller-retour ne recharge rien, mais au plus 160 textures cachées : au-delà, les plus anciennes sont rendues. Pic pendant un tour rapide d'Azeroth au banc : 1 091 → 387 textures ; au bench en jeu, le tour simulé passe de 1 500 à 444.
 - **Carte fermée, rien de superflu en mémoire.** Les textures des zones sont rendues dès la fermeture ; seules restent les cartes du monde et des continents (60 tuiles). Avant, les zones vues en dernier restaient chargées jusqu'à la réouverture (90 textures au bench en jeu, jusqu'à 380 au banc).
 - **Changement de vue.** Passer à l'Outreterre rend les zones d'Azeroth, qui restaient chargées indéfiniment (256 textures au banc).
