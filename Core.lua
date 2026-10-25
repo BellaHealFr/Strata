@@ -150,28 +150,66 @@ function ns.UnitPos(unit)
 end
 
 -- La zone (dessinée) sous un point d'une vue : la plus petite qui le contient.
-function ns.ZoneAt(view, x, y)
-	local best, bestArea, bx, by
+--
+-- Appelée deux fois toutes les 30 ms (survol et joueur) : au lieu de parcourir toutes les zones,
+-- une grille de GRID x GRID cases sur l'étendue des zones donne, pour chaque case, les zones qui
+-- la touchent, de la plus petite à la plus grande. La première qui contient le point est la bonne.
+local GRID = 32
+local grids = {}
+local EMPTY = {}
+
+local function BuildGrid(view)
+	local list = {}
+	local minX, minY, maxX, maxY = math.huge, math.huge, -math.huge, -math.huge
 	for _, c in ipairs(ns.VIEWS[view].continents) do
 		local C = Zones[c]
 		local ox, oy = 0, 0
 		if C.parent == 0 then ox, oy = C.x, C.y end
 		for file, Z in pairs(C.zones) do
 			if not Z[5] then
-				local zx, zy = (x - ox - Z[3]) / Z[1], (y - oy - Z[4]) / Z[2]
-				if zx >= 0 and zx <= 1 and zy >= 0 and zy <= 1 then
-					local area = Z[1] * Z[2]
-					if not best or area < bestArea then
-						best, bestArea, bx, by = { c = c, file = file }, area, zx, zy
-					end
-				end
+				local z = { c = c, file = file, x = ox + Z[3], y = oy + Z[4], w = Z[1], h = Z[2] }
+				list[#list + 1] = z
+				minX, minY = math.min(minX, z.x), math.min(minY, z.y)
+				maxX, maxY = math.max(maxX, z.x + z.w), math.max(maxY, z.y + z.h)
 			end
 		end
 	end
-	if best then
-		local m = ns.maps[best.c]
-		local zone = m and m.zones[best.file]
-		return zone and zone.name or best.file, bx, by
+	sort(list, function(a, b) return a.w * a.h < b.w * b.h end)
+
+	local g = { x = minX, y = minY, cw = (maxX - minX) / GRID, ch = (maxY - minY) / GRID, cells = {} }
+	local function cell(v, origin, size)
+		return math.max(0, math.min(GRID - 1, floor((v - origin) / size)))
+	end
+	for _, z in ipairs(list) do
+		for gy = cell(z.y, g.y, g.ch), cell(z.y + z.h, g.y, g.ch) do
+			for gx = cell(z.x, g.x, g.cw), cell(z.x + z.w, g.x, g.cw) do
+				local i = gy * GRID + gx
+				local zones = g.cells[i] or {}
+				zones[#zones + 1] = z
+				g.cells[i] = zones
+			end
+		end
+	end
+	grids[view] = g
+	return g
+end
+
+function ns.ZoneAt(view, x, y)
+	local g = grids[view] or BuildGrid(view)
+	local gx, gy = floor((x - g.x) / g.cw), floor((y - g.y) / g.ch)
+	if gx < 0 or gx >= GRID or gy < 0 or gy >= GRID then
+		-- Bord exact de l'étendue : la dernière case le contient encore.
+		if x == g.x + GRID * g.cw then gx = GRID - 1 end
+		if y == g.y + GRID * g.ch then gy = GRID - 1 end
+		if gx < 0 or gx >= GRID or gy < 0 or gy >= GRID then return end
+	end
+	for _, z in ipairs(g.cells[gy * GRID + gx] or EMPTY) do
+		local zx, zy = (x - z.x) / z.w, (y - z.y) / z.h
+		if zx >= 0 and zx <= 1 and zy >= 0 and zy <= 1 then
+			local m = ns.maps[z.c]
+			local info = m and m.zones[z.file]
+			return info and info.name or z.file, zx, zy
+		end
 	end
 end
 

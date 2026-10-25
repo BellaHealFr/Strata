@@ -95,7 +95,7 @@ yards dans la vue       = yards dans le continent + coin du continent (vue Azero
 
 Cette conversion reste juste même si un autre addon a sélectionné une autre carte, tant que l'unité s'y trouve. Si le joueur n'est sur aucune carte connue alors que la carte de Blizzard est fermée, Strata resélectionne sa zone, au plus une fois toutes les 2 secondes. En instance, le client renvoie 0, 0 : la flèche est masquée.
 
-`ns.ZoneAt` fait le chemin inverse pour le survol : la plus petite zone dessinée qui contient le point, et la position dans cette zone en pourcentage.
+`ns.ZoneAt` fait le chemin inverse pour le survol : la plus petite zone dessinée qui contient le point, et la position dans cette zone en pourcentage. Appelée deux fois toutes les 30 ms (survol et joueur), elle passe par un index : une grille de 32 × 32 cases sur l'étendue des zones de la vue, construite au premier appel, où chaque case liste les zones qui la touchent, de la plus petite à la plus grande. Seules ces quelques zones sont testées, et la première qui contient le point est la bonne. Le banc vérifie que le résultat est identique au parcours complet.
 
 ## 6. Le canevas et ses couches
 
@@ -173,7 +173,7 @@ La fenêtre a un fond et une bordure de boîte de dialogue standard. Elle se dé
 | Icônes | jusqu'à 40 positions de raid toutes les 30 ms |
 | Mémoire | les zones visibles, plus au plus 160 textures cachées pendant 8 s ; carte fermée : 60 tuiles |
 
-Ces coûts sont tenus par les budgets du banc (section 13). Pistes suivies dans la [feuille de route](FEUILLE-DE-ROUTE.md) : index spatial pour le survol (#6), saccade possible à la première ouverture (#8).
+Ces coûts sont tenus par les budgets du banc (section 13). Pistes suivies dans la [feuille de route](FEUILLE-DE-ROUTE.md) : saccade possible à la première ouverture (#8).
 
 ## 13. Vérification
 
