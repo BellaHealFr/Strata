@@ -161,3 +161,44 @@ for line in ns.db.lastBench and box.text:gmatch("[^\n]+") or function() end do
 	if line:find(ns.L.GOAL_TEXTURES:match("^[^:]+"), 1, true) then texLine = line end
 end
 check(texLine ~= nil, "objectif de textures au plus fort : « " .. tostring(texLine) .. " »")
+
+-- #6 : la recherche de zone par index donne exactement le résultat du parcours complet de 0.1.0.
+local function ZoneAtReference(view, x, y)
+	local best, bestArea, bx, by
+	for _, c in ipairs(ns.VIEWS[view].continents) do
+		local C = ns.Zones[c]
+		local ox, oy = 0, 0
+		if C.parent == 0 then ox, oy = C.x, C.y end
+		for file, Z in pairs(C.zones) do
+			if not Z[5] then
+				local zx, zy = (x - ox - Z[3]) / Z[1], (y - oy - Z[4]) / Z[2]
+				if zx >= 0 and zx <= 1 and zy >= 0 and zy <= 1 then
+					local area = Z[1] * Z[2]
+					if not best or area < bestArea then best, bestArea, bx, by = { c = c, file = file }, area, zx, zy end
+				end
+			end
+		end
+	end
+	if best then
+		local m = ns.maps[best.c]
+		local zone = m and m.zones[best.file]
+		return zone and zone.name or best.file, bx, by
+	end
+end
+local points, diffs = 0, 0
+for _, view in ipairs({ "azeroth", "outland" }) do
+	local size = ns.VIEWS[view].size
+	for i = 0, 59 do
+		for j = 0, 32 do
+			local x, y = (i + 0.37) / 60 * size.w * 1.1 - size.w * 0.05, (j + 0.61) / 33 * size.h * 1.1 - size.h * 0.05
+			local a, ax, ay = ns.ZoneAt(view, x, y)
+			local b, bx, by = ZoneAtReference(view, x, y)
+			points = points + 1
+			if a ~= b or (a and (math.abs(ax - bx) > 1e-9 or math.abs(ay - by) > 1e-9)) then
+				diffs = diffs + 1
+				if diffs <= 3 then print(format("     écart %s (%.0f, %.0f) : %s / %s", view, x, y, tostring(a), tostring(b))) end
+			end
+		end
+	end
+end
+check(diffs == 0, format("recherche de zone identique au parcours complet sur %d points (%d écarts)", points, diffs))

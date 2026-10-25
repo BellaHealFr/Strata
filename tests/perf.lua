@@ -98,6 +98,15 @@ TEST.raid = 0
 mean = measureFrames(150)
 budget("après raid.ops par image", mean.ops)
 
+-- 6 a. Recherche de zone (#6) : 100 appels sur le joueur, et le survol réel de la carte.
+local zx, zy = select(2, ns.UnitPos("player")), select(3, ns.UnitPos("player"))
+local lookups = measure(function() for _ = 1, 100 do ns.ZoneAt("azeroth", zx, zy) end end)
+budget("ZoneAt.ops pour 100 appels", lookups.ops)
+TEST.mouseOver = true
+mean = measureFrames(150)
+budget("survol.ops par image", mean.ops)
+TEST.mouseOver = nil
+
 -- 6 bis. Compteur à l'écran : son coût quand il est affiché, et aucun coût une fois masqué.
 SlashCmdList.STRATA("debug")
 mean = measureFrames(150)
