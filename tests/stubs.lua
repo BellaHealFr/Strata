@@ -165,6 +165,13 @@ UnitExists = function(u)
 end
 UnitIsUnit = function(a, b) return a == b or (a == "raid1" and b == "player") end
 UnitClass = function() return "Mage", "MAGE" end
+UnitLevel = function() return 12 end
+-- Comme dans le jeu : une couleur selon l'écart entre le niveau et celui du joueur.
+GetQuestDifficultyColor = function(level)
+	if level - 12 >= 5 then return { r = 1, g = 0.1, b = 0.1 } end
+	if level - 12 >= -2 then return { r = 1, g = 1, b = 0 } end
+	return { r = 0.5, g = 0.5, b = 0.5 }
+end
 -- Mesure : un temps déterministe tiré du compte d'instructions (tests/helpers.lua).
 debugprofilestop = function() return (TEST.ops or 0) * 0.002 end
 GetFramerate = function() return 60 end
