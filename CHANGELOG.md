@@ -3,6 +3,7 @@
 ## Non publié
 
 ### Ajouts
+- **Épingles** : Ctrl-clic sur la carte pour en poser une, avec une note et l'une des 8 marques de raid. Une fiche permet de modifier la note et l'icône, de lancer une **flèche TomTom** vers l'épingle (si TomTom est installé) ou de la supprimer. Le bouton « Épingles » en bas à droite les liste, des plus récentes aux plus anciennes ; un clic y emmène la carte. Gardées par compte, sur Azeroth comme en Outreterre.
 - **Recherche de zones et de villes**, dans la barre du bas. Les résultats s'affichent à la frappe, avec leur continent ; un clic ou Entrée amène la carte sur la zone, au zoom où elle tient dans la fenêtre, en passant à l'Outreterre si besoin. Majuscules et accents ignorés (« foret » trouve « Forêt d'Elwynn ») ; le début du nom, puis le début d'un mot, passent avant le reste.
 
 ### Modifications

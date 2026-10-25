@@ -11,6 +11,7 @@
 --   base  : le fond de chaque zone (12 tuiles, comme WorldMapDetailFrame : 1002 x 668 px)
 --   over  : les morceaux découverts de chaque zone (GetMapOverlayInfo)
 --   city  : les villes, entièrement peintes, au-dessus de leurs voisines
+--   pins  : les épingles (Pins.lua), emportées par un déplacement sans travail par épingle
 -- Les zones ne chargent leurs textures que visibles et assez grandes à l'écran, et les rendent
 -- quelques secondes après avoir quitté la vue (client 32 bits : la mémoire compte).
 -- Les icônes (joueur, groupe) sont sur un cadre non mis à l'échelle : elles gardent leur taille.
@@ -22,7 +23,7 @@ local L = ns.L
 
 local UNITS = 1000
 local MAP_W, MAP_H = 1002, 668      -- la partie utile des 4 x 3 tuiles de 256 px
-local LAYERS = { "world", "cont", "base", "over", "city" }
+local LAYERS = { "world", "cont", "base", "over", "city", "pins" }
 
 local ZOOM_MAX = 40
 local ZOOM_STEP = 1.3
@@ -263,7 +264,9 @@ local function Clamp(z, x, y)
 end
 
 local function SetView(z, x, y)
+	local before = zoom
 	zoom, ox, oy = Clamp(z, x, y)
+	if zoom ~= before and ns.OnZoom then ns.OnZoom() end
 	V.frame:SetScale(zoom)
 	V.frame:ClearAllPoints()
 	V.frame:SetPoint("TOPLEFT", child, "TOPLEFT", ox / zoom, -oy / zoom)
@@ -489,6 +492,7 @@ local function ShowView(name, centerOnPlayer)
 	canvases[name] = canvases[name] or BuildCanvas(name)
 	V = canvases[name]
 	V.frame:Show()
+	if ns.OnCanvas then ns.OnCanvas(V) end
 
 	local view, x, y = ns.UnitPos("player")
 	local saved = ns.db.views[name]
@@ -545,6 +549,11 @@ function ns.view.Center(x, y, z) CenterOn(x, y, z) end
 function ns.view.Pan(dx, dy) SetView(zoom, ox + dx, oy + dy) end
 function ns.view.ZoomMin() return ZoomMin() end
 function ns.view.Size() return ViewSize() end
+-- Le point sous le curseur : vue, et position en yards de la vue.
+function ns.view.CursorPoint()
+	local mx, my = Cursor()
+	return V.name, (mx - ox) / zoom / V.k, (my - oy) / zoom / V.k
+end
 function ns.view.Frame() return frame end
 function ns.view.Stop() drag, anim = nil, nil end
 
@@ -611,7 +620,7 @@ local function CreateWindow()
 	frame:SetClampedToScreen(true)
 	frame:SetMovable(true)
 	frame:SetResizable(true)
-	frame:SetMinResize(480, 340)
+	frame:SetMinResize(600, 340)
 	frame:EnableMouse(true)
 	frame:SetBackdrop({
 		bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
@@ -689,7 +698,9 @@ local function CreateWindow()
 	end)
 	scroll:SetScript("OnMouseDown", function(self, button)
 		if ns.benching then return end
-		if button == "LeftButton" then
+		if button == "LeftButton" and IsControlKeyDown() then
+			ns.AddPin(ns.view.CursorPoint())
+		elseif button == "LeftButton" then
 			local mx, my = Cursor()
 			anim = nil
 			drag = { x = mx, y = my, ox = ox, oy = oy }
@@ -744,6 +755,7 @@ local function CreateWindow()
 	hoverText:SetPoint("RIGHT", title, "RIGHT", -4, -2)
 	hoverText:SetJustifyH("RIGHT")
 	ns.CreateSearch(frame, fogButton)
+	ns.CreatePinsUI(frame)
 
 	frame:SetScript("OnUpdate", function(self, elapsed)
 		if not ns.measuring then return OnUpdate(self, elapsed) end

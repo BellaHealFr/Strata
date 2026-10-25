@@ -51,6 +51,7 @@ Version décrite : **0.1.0**.
 | `Data/Zones.lua` | Taille et position de chaque continent et zone, en yards (généré) |
 | `Core.lua` | Réglages, lecture des cartes du client, conversion des positions, commandes |
 | `Map.lua` | La fenêtre, le canevas, le zoom, les icônes |
+| `Pins.lua` | Épingles : posées sur la couche `pins` du canevas (un déplacement ne coûte rien par épingle, seul un zoom les redimensionne), fiche, liste, flèche TomTom (`AddZWaypoint` avec la place de la zone dans `GetMapZones`) ; fiche et liste créées au premier usage |
 | `Search.lua` | Recherche de zones et de villes : index des zones dessinées (noms du client), comparaison sans majuscules ni accents, classement par pertinence, déplacement de la carte sur la zone choisie |
 | `MinimapButton.lua` | Le bouton autour de la minicarte : position sur le cercle, ou sur le carré si `GetMinimapShape` renvoie `SQUARE` (ElvUI), angle retenu, aucun `OnUpdate` hors glisser |
 | `Bench.lua` | Mesure en jeu : compteur à l'écran (`/strata debug`) et parcours de mesure (`/strata bench`) |
@@ -112,6 +113,7 @@ Couches, de bas en haut (un cadre par couche, niveaux croissants) :
 | `base` | le fond de chaque zone, 12 tuiles | si le brouillard est affiché |
 | `over` | les morceaux découverts de chaque zone | toujours |
 | `city` | les villes, entièrement peintes | au-dessus de leurs voisines |
+| `pins` | les épingles (`Pins.lua`), à taille constante à l'écran | toujours |
 
 Les tuiles d'une carte suivent exactement la carte de Blizzard : une grille de 4 × 3 tuiles de 256 pixels dont seuls 1002 × 668 pixels sont utiles. Les tuiles de bord sont recadrées (`SetTexCoord`). Les morceaux découverts sont découpés comme le fait `WorldMapFrame_Update`, avec la taille de fichier en puissance de 2 pour les tuiles de bord.
 

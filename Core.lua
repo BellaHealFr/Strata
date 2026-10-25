@@ -74,6 +74,7 @@ local function ReadZone(c, z, name)
 	if not file then return end
 	local zone = ns.maps[c].zones[file] or { c = c, file = file }
 	zone.name = name
+	zone.index = z           -- place dans GetMapZones(c) : ce que TomTom attend
 	zone.prefix = TilePrefix(file)
 	zone.overlays = ReadOverlays()
 	ns.maps[c].zones[file] = zone
@@ -212,7 +213,7 @@ function ns.ZoneAt(view, x, y)
 		if zx >= 0 and zx <= 1 and zy >= 0 and zy <= 1 then
 			local m = ns.maps[z.c]
 			local info = m and m.zones[z.file]
-			return info and info.name or z.file, zx, zy
+			return info and info.name or z.file, zx, zy, z.c, z.file
 		end
 	end
 end
