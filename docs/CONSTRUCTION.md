@@ -49,9 +49,11 @@ Version décrite : **0.1.0**.
 | `Strata.toc` | Déclaration de l'addon pour le client |
 | `Locale.lua` | Textes de l'interface, en anglais et en français |
 | `Data/Zones.lua` | Taille et position de chaque continent et zone, en yards (généré) |
+| `Data/FlightMasters.lua` | Les 154 maîtres de vol (position dans leur zone, faction, noms anglais et français), tirés de la base de PNJ de Questie-335 (généré) |
 | `Data/Levels.lua` | Tranche de niveaux de chaque zone, que le client ne donne pas (Warcraft Wiki) ; affichée au survol par `ns.ZoneText`, à la couleur de `GetQuestDifficultyColor` |
 | `Core.lua` | Réglages, lecture des cartes du client, conversion des positions, commandes |
 | `Map.lua` | La fenêtre, le canevas, le zoom, les icônes |
+| `Flights.lua` | Maîtres de vol : icônes de la faction du joueur sur la couche `flights`, créées à l'entrée dans la vue ; vols appris relevés à `TAXIMAP_OPENED` (voir ci-dessous) |
 | `Nav.lua` | Flèche de guidage : cap vers la cible moins `GetPlayerFacing`, distance et temps estimé (vitesse d'approche lissée), arrivée à 10 yards, cible retenue ; `OnUpdate` seulement pendant un guidage |
 | `Pins.lua` | Épingles : posées sur la couche `pins` du canevas (un déplacement ne coûte rien par épingle, seul un zoom les redimensionne), fiche, liste, flèche TomTom (`AddZWaypoint` avec la place de la zone dans `GetMapZones`) ; fiche et liste créées au premier usage |
 | `Search.lua` | Recherche de zones et de villes : index des zones dessinées (noms du client), comparaison sans majuscules ni accents, classement par pertinence, déplacement de la carte sur la zone choisie |
@@ -59,6 +61,7 @@ Version décrite : **0.1.0**.
 | `Bench.lua` | Mesure en jeu : compteur à l'écran (`/strata debug`) et parcours de mesure (`/strata bench`) |
 | `Bindings.xml` | Le raccourci clavier |
 | `tools/extract_zones.py` | Génère `Data/Zones.lua` |
+| `tools/extract_flightmasters.py` | Génère `Data/FlightMasters.lua` depuis une installation de Questie-335 |
 | `tests/` | Banc de simulation : un client 3.3.5 simulé et un scénario |
 
 Le client fournit tout ce qui se voit : images des cartes, morceaux découverts, noms des zones (déjà traduits), positions des unités. Strata n'apporte que les rectangles des zones, que le client ne donne pas à un addon.
@@ -219,6 +222,14 @@ Le banc compte le travail du code, mais ne voit ni le rendu ni la mémoire réel
 | Dézoomé | 2 s | le monde entier |
 
 Pour chaque phase : images par seconde, temps de Strata par image (moyenne et pire) et pic de textures chargées. Puis la durée de la lecture des cartes à la première ouverture de la session (`ns.Scan`, chronométrée à chaque fois), la mémoire Lua de l'addon et la mémoire Lua totale du jeu (`collectgarbage("count")`), et la comparaison avec les [objectifs de performance en jeu](FEUILLE-DE-ROUTE.md#objectifs-de-performance-en-jeu). Certains clients renvoient 0 pour la mémoire d'un addon : elle est alors indiquée « indisponible » et l'objectif « à revoir », jamais « ok ». La vue d'avant est rétablie, les résultats s'affichent dans une boîte de texte prête à copier dans un rapport de test, et sont enregistrés (`StrataDB.lastBench`).
+
+### Maîtres de vol
+
+Positions : `tools/extract_flightmasters.py` lit la base de PNJ de Questie-335 (drapeau `FLIGHT_MASTER`, 8192) et convertit ses numéros de zone (AreaTable) en fichiers de carte grâce aux noms anglais de `zoneTables.lua`. Chaque correspondance est vérifiée ; les doublons de Questie (même nom, même zone, quelques mètres d'écart) sont fusionnés en gardant les factions communes.
+
+Affichage : les icônes de la carte des vols du jeu (`UI-Taxi-Icon-Green` pour un vol appris, `UI-Taxi-Icon-White` grisée sinon), sur la couche `flights` du canevas. Elles ne sont créées qu'à l'entrée dans la vue (abonnement `ns.listeners.view`), et la couche entière est masquée en dessous de l'échelle d'un continent.
+
+Vols appris : la carte des vols (`TaxiNodePosition`) place ses points dans son propre repère, pas en coordonnées de zone. À chaque `TAXIMAP_OPENED`, le maître de vol où se tient le joueur donne une paire (point `CURRENT` de la carte des vols, position réelle du maître de vol). Ces paires, par continent et pour tout le compte, donnent dès qu'il y en a deux une correspondance linéaire par axe (moindres carrés), qui place tous les vols connus (`TaxiNodeGetType` différent de `NONE`) ; chacun est rattaché au maître de vol de la faction le plus proche (250 yards au plus). Les vols appris sont gardés par personnage (`StrataCharDB.flights`).
 
 ## 15. Limites connues
 

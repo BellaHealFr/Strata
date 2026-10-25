@@ -5,16 +5,19 @@
 ## Author: BellaHealFr
 ## Version: 0.2.0-beta.1
 ## SavedVariables: StrataDB
+## SavedVariablesPerCharacter: StrataCharDB
 ## X-License: GPL-3.0-only (voir LICENSE et NOTICE.md)
 ## X-Category: Map
 
 Locale.lua
 Data\Zones.lua
 Data\Levels.lua
+Data\FlightMasters.lua
 Core.lua
 Map.lua
 Search.lua
 Pins.lua
+Flights.lua
 Nav.lua
 Bench.lua
 MinimapButton.lua

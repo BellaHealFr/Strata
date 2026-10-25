@@ -168,6 +168,12 @@ end
 UnitIsUnit = function(a, b) return a == b or (a == "raid1" and b == "player") end
 UnitClass = function() return "Mage", "MAGE" end
 UnitLevel = function() return 12 end
+UnitFactionGroup = function() return TEST.faction or "Alliance" end
+-- Carte des vols : TEST.taxi = { { type, x, y, name }, ... }
+NumTaxiNodes = function() return TEST.taxi and #TEST.taxi or 0 end
+TaxiNodeGetType = function(i) return TEST.taxi[i][1] end
+TaxiNodePosition = function(i) return TEST.taxi[i][2], TEST.taxi[i][3] end
+TaxiNodeName = function(i) return TEST.taxi[i][4] or "?" end
 -- Comme dans le jeu : une couleur selon l'écart entre le niveau et celui du joueur.
 GetQuestDifficultyColor = function(level)
 	if level - 12 >= 5 then return { r = 1, g = 0.1, b = 0.1 } end
@@ -218,15 +224,20 @@ GetMapOverlayInfo = function(i)
 	return "Interface\\WorldMap\\" .. file .. "\\Corner", 256, 512, 700, 100
 end
 
-local function ElwynnIndex()
-	for i, f in ipairs(zoneLists[2]) do if f == "Elwynn" then return i end end
+-- La zone du joueur : TEST.zone (fichier de carte), la Forêt d'Elwynn par défaut.
+local function PlayerZone()
+	local file = TEST.zone or "Elwynn"
+	for c = 1, 4 do
+		for i, f in ipairs(zoneLists[c]) do if f == file then return c, i end end
+	end
 end
-SetMapToCurrentZone = function() count("SetMapToCurrentZone") map.c, map.z = 2, ElwynnIndex() end
+SetMapToCurrentZone = function() count("SetMapToCurrentZone") map.c, map.z = PlayerZone() end
 
 -- Le joueur à 50 %, 50 % de la Forêt d'Elwynn ; party1 à 60 %, 40 % ; le raid en cercle autour.
 GetPlayerMapPosition = function(unit)
 	count("GetPlayerMapPosition")
-	if map.c ~= 2 or map.z ~= ElwynnIndex() then return 0, 0 end
+	local pc, pz = PlayerZone()
+	if map.c ~= pc or map.z ~= pz then return 0, 0 end
 	local i = RaidIndex(unit)
 	if i and i <= TEST.raid then
 		local a = i / TEST.raid * 2 * math.pi

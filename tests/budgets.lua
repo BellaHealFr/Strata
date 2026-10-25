@@ -35,6 +35,9 @@ BUDGETS = {
 	-- plafonnées (MAX_HIDDEN), rendues à la fermeture et au changement de vue.
 	["tour.textures chargées (pire moment)"] = 485,     -- [387]
 	["tour.CreateTexture"] = 135,                       -- [108] textures réutilisées, pas recréées
+	-- Maîtres de vol (#9) [0.3] : une icône par maître de vol de l'Alliance sur Azeroth, créée
+	-- une seule fois quand elle entre dans la vue. Au-delà, des icônes seraient recréées.
+	["tour.icônes de vol créées"] = 81,
 	["tour.textures chargées après 20 s"] = 64,         -- [51] tout ce qui est hors vue est rendu
 
 	-- Raid de 40. [0.1.0]

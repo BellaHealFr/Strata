@@ -99,15 +99,11 @@ local function Render()
 	if listButton then listButton:SetText(format(L.PINS, #Pins())) end
 end
 
--- Appelés par Map.lua.
-function ns.OnCanvas(c)
+tinsert(ns.listeners.canvas, function(c)
 	canvas = c
 	Render()
-end
-
-function ns.OnZoom()
-	Resize()
-end
+end)
+tinsert(ns.listeners.zoom, function() Resize() end)
 
 --------------------------------------------------------------------------------
 -- Fiche d'une épingle

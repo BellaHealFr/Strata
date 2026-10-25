@@ -11,6 +11,7 @@
 --   base  : le fond de chaque zone (12 tuiles, comme WorldMapDetailFrame : 1002 x 668 px)
 --   over  : les morceaux découverts de chaque zone (GetMapOverlayInfo)
 --   city  : les villes, entièrement peintes, au-dessus de leurs voisines
+--   flights : les maîtres de vol (Flights.lua)
 --   pins  : les épingles (Pins.lua), emportées par un déplacement sans travail par épingle
 -- Les zones ne chargent leurs textures que visibles et assez grandes à l'écran, et les rendent
 -- quelques secondes après avoir quitté la vue (client 32 bits : la mémoire compte).
@@ -23,7 +24,7 @@ local L = ns.L
 
 local UNITS = 1000
 local MAP_W, MAP_H = 1002, 668      -- la partie utile des 4 x 3 tuiles de 256 px
-local LAYERS = { "world", "cont", "base", "over", "city", "pins" }
+local LAYERS = { "world", "cont", "base", "over", "city", "flights", "pins" }
 
 local ZOOM_MAX = 40
 local ZOOM_STEP = 1.3
@@ -40,6 +41,11 @@ local zoom, ox, oy = 1, 0, 0  -- échelle, et position à l'écran (px, y vers l
 local anim                    -- { target, mx, my } : zoom animé autour d'un point
 local drag                    -- { x, y, ox, oy } : déplacement à la souris
 local dirty = true
+
+-- Abonnés : ns.listeners.canvas (un canevas s'affiche), ns.listeners.zoom (le zoom change),
+-- ns.listeners.view (la vue a bougé : rectangle visible en unités du canevas, au plus toutes les 80 ms).
+-- Les couches posées sur le canevas (épingles, maîtres de vol) s'y inscrivent.
+ns.listeners = { canvas = {}, zoom = {}, view = {} }
 local hidden = 0           -- textures des zones cachées mais encore chargées (délai de RELEASE_AFTER)
 
 -- Ce que la mesure (Bench.lua) lit. Le décompte des textures coûte une addition par texture ;
@@ -266,7 +272,9 @@ end
 local function SetView(z, x, y)
 	local before = zoom
 	zoom, ox, oy = Clamp(z, x, y)
-	if zoom ~= before and ns.OnZoom then ns.OnZoom() end
+	if zoom ~= before then
+		for _, f in ipairs(ns.listeners.zoom) do f(zoom) end
+	end
 	V.frame:SetScale(zoom)
 	V.frame:ClearAllPoints()
 	V.frame:SetPoint("TOPLEFT", child, "TOPLEFT", ox / zoom, -oy / zoom)
@@ -357,6 +365,7 @@ local function UpdateLayers()
 		ShowAll(tiles, show)
 		if show then SetAlphaAll(tiles, contAlpha) end
 	end
+	for _, f in ipairs(ns.listeners.view) do f(x0, y0, x1, y1) end
 	dirty = false
 end
 
@@ -488,7 +497,7 @@ local function ShowView(name, centerOnPlayer)
 	canvases[name] = canvases[name] or BuildCanvas(name)
 	V = canvases[name]
 	V.frame:Show()
-	if ns.OnCanvas then ns.OnCanvas(V) end
+	for _, f in ipairs(ns.listeners.canvas) do f(V) end
 
 	local view, x, y = ns.UnitPos("player")
 	local saved = ns.db.views[name]
@@ -545,6 +554,12 @@ function ns.view.Center(x, y, z) CenterOn(x, y, z) end
 function ns.view.Pan(dx, dy) SetView(zoom, ox + dx, oy + dy) end
 function ns.view.ZoomMin() return ZoomMin() end
 function ns.view.Size() return ViewSize() end
+-- Le rectangle visible, en unités du canevas.
+function ns.view.Rect()
+	local vw, vh = ViewSize()
+	local x0, y0 = -ox / zoom, -oy / zoom
+	return x0, y0, x0 + vw / zoom, y0 + vh / zoom
+end
 -- Le point sous le curseur : vue, et position en yards de la vue.
 function ns.view.CursorPoint()
 	local mx, my = Cursor()

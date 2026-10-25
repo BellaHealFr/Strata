@@ -491,3 +491,121 @@ check(not ns.db.fullscreen and StrataFrame.allPoints == nil and StrataFrame.w ==
 	"/strata plein : retour à la fenêtre, même taille et même position")
 check(grabber:IsShown(), "retour en fenêtre : poignée de redimensionnement revenue")
 Strata_Toggle()
+
+-- #9 : maîtres de vol
+-- Intégrité des données (Data/FlightMasters.lua)
+do
+	local drawn, ids, bad = {}, {}, {}
+	for c = 1, 4 do for file, Z in pairs(ns.Zones[c].zones) do if not Z[5] then drawn[file] = c end end end
+	for _, fm in ipairs(ns.FlightMasters) do
+		if not drawn[fm[2]] or fm[3] < 0 or fm[3] > 1 or fm[4] < 0 or fm[4] > 1
+			or not (fm[5] == "A" or fm[5] == "H" or fm[5] == "AH") or ids[fm[1]] then
+			bad[#bad + 1] = tostring(fm[1])
+		end
+		ids[fm[1]] = true
+	end
+	check(#ns.FlightMasters >= 150 and #bad == 0, format("%d maîtres de vol, zones, positions et factions valides %s", #ns.FlightMasters, table.concat(bad, ", ")))
+end
+local function fmById(id)
+	for _, fm in ipairs(ns.FlightMasters) do if fm[1] == id then return fm end end
+end
+check(fmById(352)[2] == "Stormwind" and fmById(352)[7] == "Dungar Grangodet", "Hurlevent : Dungar Grangodet (nom français)")
+check(fmById(3310)[5] == "H", "Doras (Orgrimmar) réservé à la Horde")
+
+-- Les icônes de maîtres de vol visibles (un /strata scan plus haut a reconstruit les canevas :
+-- les anciens, masqués, gardent les leurs).
+local function flightButtons()
+	local out = {}
+	local function walk(r)
+		if r.fm and r:IsVisible() then out[r.fm[1]] = r end
+		for _, c in ipairs(r.children) do walk(c) end
+	end
+	walk(StrataFrame)
+	return out
+end
+local function expected(faction)
+	local n = 0
+	for _, fm in ipairs(ns.FlightMasters) do
+		local c = 0
+		for k = 1, 4 do if ns.Zones[k].zones[fm[2]] then c = k end end
+		if c ~= 3 and fm[5]:find(faction, 1, true) then n = n + 1 end
+	end
+	return n
+end
+local function ofFaction(buttons, faction)
+	for _, b in pairs(buttons) do
+		if not b.fm[5]:find(faction, 1, true) then return false end
+	end
+	return true
+end
+Strata_Toggle()
+-- Canevas neufs, carte centrée sur le joueur au zoom 6 : une situation connue.
+ns.Rebuild()
+do
+	local _, jx, jy = ns.UnitPos("player")
+	local k = 1000 / ns.VIEWS.azeroth.size.w
+	ns.view.Center(jx * k, jy * k, 6)
+	tick(0.3)
+end
+local shownFlights = flightButtons()
+local count = 0 for _ in pairs(shownFlights) do count = count + 1 end
+check(shownFlights[352] and ofFaction(shownFlights, "A"), format("Alliance, près d'Elwynn : maître de vol de Hurlevent affiché, %d icônes, toutes Alliance ou neutres", count))
+check(count < expected("A"), format("seules les icônes autour de la vue sont créées (%d sur %d)", count, expected("A")))
+
+-- Visite 1 : Hurlevent. Carte des vols simulée : v = (t - b) * échelle, par axe.
+local function view(id)
+	local fm = fmById(id)
+	local c = 2
+	return select(2, ns.ToView(c, fm[2], fm[3], fm[4]))
+end
+local function taxiPos(id)
+	local fm = fmById(id)
+	local _, x, y = ns.ToView(2, fm[2], fm[3], fm[4])
+	return 0.05 + x / 60000, 0.1 + y / 45000
+end
+local function node(kind, id) local tx, ty = taxiPos(id) return { kind, tx, ty } end
+TEST.zone, TEST.px, TEST.py = "Stormwind", fmById(352)[3], fmById(352)[4]
+TEST.taxi = { node("CURRENT", 352), node("REACHABLE", 523), node("NONE", 1573) }
+TEST.Fire("TAXIMAP_OPENED")
+check(ns.char.flights[352] and not ns.char.flights[523], "visite à Hurlevent : vol de Hurlevent appris ; Sentinelle pas encore placée (un seul repère)")
+check(flightButtons()[352].icon.path == "Interface\\TaxiFrame\\UI-Taxi-Icon-Green", "vol appris : icône verte")
+-- Visite 2 : Marche de l'Ouest. Deux repères : tous les vols connus sont placés.
+TEST.zone, TEST.px, TEST.py = "Westfall", fmById(523)[3], fmById(523)[4]
+TEST.taxi = { node("REACHABLE", 352), node("CURRENT", 523), node("DISTANT", 1573) }
+TEST.Fire("TAXIMAP_OPENED")
+check(ns.char.flights[523] and ns.char.flights[1573], "visite à la Marche de l'Ouest : Sentinelle et Forgefer (lointain) reconnus par la correspondance")
+local unknownIcon = nil
+for id, b in pairs(flightButtons()) do if not ns.char.flights[id] then unknownIcon = b.icon.path end end
+check(unknownIcon == "Interface\\TaxiFrame\\UI-Taxi-Icon-White", "vol pas encore appris : icône blanche grisée")
+TEST.zone, TEST.px, TEST.py, TEST.taxi = nil, nil, nil, nil
+
+-- Horde, carte centrée sur Orgrimmar
+TEST.faction = "Horde"
+ns.Rebuild()
+do
+	local doras = fmById(3310)
+	local _, dx, dy = ns.ToView(1, doras[2], doras[3], doras[4])
+	local k = 1000 / ns.VIEWS.azeroth.size.w
+	ns.view.Center(dx * k, dy * k, 6)
+	tick(0.3)
+end
+shownFlights = flightButtons()
+check(shownFlights[3310] and not shownFlights[352] and ofFaction(shownFlights, "H"), "Horde, à Orgrimmar : Doras affiché, Hurlevent non, icônes toutes Horde ou neutres")
+-- Dézoomé sur le monde : la couche des maîtres de vol se retire
+ns.view.Center(500, 300, ns.view.ZoomMin())
+tick(0.3)
+check(next(flightButtons()) == nil, "dézoomé sur le monde : maîtres de vol masqués")
+TEST.faction = nil
+ns.Rebuild()
+do
+	local _, jx, jy = ns.UnitPos("player")
+	local k = 1000 / ns.VIEWS.azeroth.size.w
+	ns.view.Center(jx * k, jy * k, 6)
+	tick(0.3)
+end
+-- /strata vols
+SlashCmdList.STRATA("vols")
+check(next(flightButtons()) == nil, "/strata vols masque les maîtres de vol")
+SlashCmdList.STRATA("vols")
+check(next(flightButtons()) ~= nil, "/strata vols les remet")
+Strata_Toggle()

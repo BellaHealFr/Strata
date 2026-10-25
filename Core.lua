@@ -245,6 +245,9 @@ events:SetScript("OnEvent", function(self, event, arg1)
 			if StrataDB[k] == nil then StrataDB[k] = v end
 		end
 		ns.db = StrataDB
+		-- Par personnage : ce qui dépend de lui (vols appris).
+		StrataCharDB = StrataCharDB or {}
+		ns.char = StrataCharDB
 	elseif event == "ZONE_CHANGED_NEW_AREA" then
 		if not WorldMapFrame:IsShown() then
 			SetMapToCurrentZone()
@@ -273,6 +276,8 @@ SlashCmdList.STRATA = function(msg)
 	elseif msg == "scan" then
 		ns.Print(ns.Scan() and L.SCANNED or L.CLOSE_WORLDMAP)
 		if ns.Rebuild then ns.Rebuild() end
+	elseif msg == "vols" or msg == "flights" then
+		ns.ToggleFlights()
 	elseif msg == "plein" or msg == "full" then
 		if not (StrataFrame and StrataFrame:IsShown()) then ns.Open() end
 		ns.ToggleFullscreen()

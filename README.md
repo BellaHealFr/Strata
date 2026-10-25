@@ -54,6 +54,9 @@ Il a été écrit pour le client 3.3.5, pas adapté d'une autre version du jeu. 
 - **Votre groupe ou votre raid**, aux couleurs de chaque classe.
 - **Zone, niveaux et coordonnées** sous le curseur (« Forêt d'Elwynn (1-10) », à la couleur des quêtes selon votre niveau), et votre position dans la barre de titre.
 
+### Le monde
+- **Maîtres de vol** de votre faction, vos vols appris en vert et les autres grisés, relevés automatiquement à chaque visite d'un maître de vol.
+
 ### Trouver un lieu
 - **Flèche de guidage** : « Suivre » sur une épingle, et une flèche à l'écran vous y mène, avec la distance et le temps restant, même carte fermée. Sans TomTom.
 - **Épingles** : Ctrl-clic sur la carte pour marquer un endroit, avec une note et une marque de raid. Une flèche **TomTom** vous y guide si TomTom est installé. Toutes vos épingles sont listées d'un clic.
@@ -96,6 +99,7 @@ Aucune modification n'entre sans vérification automatique, budgets de performan
 | `/strata brouillard` | afficher ou masquer le fond des zones |
 | `/strata scan` | relire les cartes du client |
 | `/strata reset` | remettre la fenêtre et les vues à zéro |
+| `/strata vols` | afficher ou masquer les maîtres de vol |
 | `/strata plein` | plein écran ou fenêtre |
 | `/strata bouton` | afficher ou masquer le bouton de la minicarte |
 | `/strata bench` | mesurer les performances (environ 25 s), résultats à copier |

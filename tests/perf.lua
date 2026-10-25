@@ -71,20 +71,31 @@ local function centerOn(x, y)
 	scroll.scripts.OnMouseUp(scroll, "LeftButton")
 	tick(0.2)
 end
+-- Les icônes de maîtres de vol créées en route (une par maître de vol, une seule fois) sont
+-- comptées à part des tuiles de carte, dont on vérifie qu'elles sont réutilisées.
+local function flightIcons(r, n)
+	n = n or 0
+	if r.fm then n = n + 1 end
+	for _, c in ipairs(r.children) do n = flightIcons(c, n) end
+	return n
+end
+local iconsBefore = flightIcons(StrataFrame)
 local maxLoaded = 0
 local tour = measure(function()
 	for gy = 0.1, 0.9, 0.2 do
 		for gx = 0.05, 0.95, 0.1 do
 			centerOn(gx * ns_canvas_w, gy * 667)
-			maxLoaded = math.max(maxLoaded, loadedTextures(StrataFrame))
+			maxLoaded = math.max(maxLoaded, loadedMapTiles(StrataFrame))
 		end
 	end
 end)
 budget("tour.textures chargées (pire moment)", maxLoaded)
-budget("tour.CreateTexture", tour.CreateTexture)
+local icons = flightIcons(StrataFrame) - iconsBefore
+budget("tour.CreateTexture", tour.CreateTexture - icons)
+budget("tour.icônes de vol créées", flightIcons(StrataFrame))
 TEST.time = TEST.time + 20
 tick(3)
-budget("tour.textures chargées après 20 s", loadedTextures(StrataFrame))
+budget("tour.textures chargées après 20 s", loadedMapTiles(StrataFrame))
 
 -- 6. Raid de 40 : 39 icônes à placer.
 TEST.raid = 40
