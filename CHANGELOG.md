@@ -6,6 +6,10 @@
 - **`/strata bench`** : un parcours de mesure d'environ 25 secondes en six phases (carte fermée, immobile, déplacement, zoom, tour d'Azeroth, dézoomé). Pour chaque phase : images par seconde, temps de Strata par image (moyenne et pire image), textures chargées au plus fort. Puis la mémoire Lua de l'addon, et la comparaison avec les objectifs de performance. Résultats dans une fenêtre où l'on peut copier le texte, et enregistrés. La vue d'avant la mesure est rétablie ; `/strata bench` pendant la mesure l'arrête.
 - **`/strata debug`** : un compteur dans le coin de la carte (images par seconde, temps de Strata par image, mise à jour des couches, textures et zones chargées, mémoire Lua).
 
+### Corrections
+- `/strata bench` : une mémoire d'addon relevée à 0 (renvoyée ainsi par certains clients) n'est plus annoncée « ok » ; elle est indiquée « indisponible » et « à revoir ». La mémoire Lua totale du jeu est ajoutée comme repère.
+- `/strata bench` : la phase « Immobile » attend 0,5 s avant de mesurer, pour ne plus compter la réouverture de la carte.
+
 ### Performances
 - Après un raid, la carte immobile retrouve son coût : les icônes des membres partis étaient masquées à nouveau 33 fois par seconde (−26 % de travail par image dans le banc après un raid de 40).
 - Rien n'est chronométré tant que ni le compteur ni le bench ne sont actifs.

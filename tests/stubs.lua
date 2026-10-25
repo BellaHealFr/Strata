@@ -156,7 +156,8 @@ UnitClass = function() return "Mage", "MAGE" end
 debugprofilestop = function() return (TEST.ops or 0) * 0.002 end
 GetFramerate = function() return 60 end
 UpdateAddOnMemoryUsage = function() count("UpdateAddOnMemoryUsage") end
-GetAddOnMemoryUsage = function() return 640 end
+-- TEST.memory permet de simuler un client qui renvoie 0 (vu en jeu, #27).
+GetAddOnMemoryUsage = function() return TEST.memory or 640 end
 time, date = os.time, os.date
 
 -- Cartes ----------------------------------------------------------------------------

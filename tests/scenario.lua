@@ -135,3 +135,22 @@ check(not ns.benching and not ns.measuring, "/strata bench pendant la mesure l'a
 StrataBenchFrame:Hide()
 Strata_Toggle()
 check(not StrataFrame:IsShown(), "fermeture après la mesure")
+
+-- #27 : un client qui renvoie 0 pour la mémoire de l'addon. Le bench ne doit pas annoncer « ok ».
+TEST.memory = 0
+SlashCmdList.STRATA("bench")
+tick(30)
+box = find(StrataBenchFrame, function(r) return r.kind == "EditBox" end)
+local memLine
+for line in box.text:gmatch("[^\n]+") do
+	if line:find(ns.L.GOAL_MEMORY_NONE:match("^[^:]+"), 1, true) then memLine = line end
+end
+check(memLine and memLine:find(ns.L.TO_CHECK, 1, true), "mémoire à 0 : « " .. tostring(memLine) .. " »")
+check(box.text:find(ns.L.BENCH_MEMORY_NONE, 1, true), "mémoire de l'addon annoncée indisponible")
+check(box.text:find(ns.L.BENCH_LUA_TOTAL:match("^[^:]+"), 1, true), "mémoire Lua totale du jeu indiquée")
+TEST.memory = nil
+StrataBenchFrame:Hide()
+Strata_Toggle()
+
+-- #27 : la phase « Immobile » ne compte pas la réouverture de la carte.
+check(ns.db.lastBench.phases[2].key == "still" and ns.db.lastBench.phases[2].warmup == 0.5, "phase immobile mesurée après 0,5 s d'attente")
