@@ -38,7 +38,7 @@ Le principe : **rien n'entre dans `main` sans vérification automatique verte, e
 
 1. **À faire** : le ticket décrit le besoin et la piste technique. Il est rangé dans un jalon.
 2. **En cours** : une branche `numéro-nom-court` (`21-bouton-minicarte`) part de `main`.
-3. **Demande de fusion** : son texte contient `Ferme #21` pour fermer le ticket à la fusion. La liste de vérifications du modèle est remplie honnêtement : une case non cochée s'explique.
+3. **Demande de fusion** : son texte contient `Closes #21` pour fermer le ticket à la fusion (GitHub ne reconnaît que les mots-clés anglais : `Closes`, `Fixes`, `Resolves`). La liste de vérifications du modèle est remplie honnêtement : une case non cochée s'explique.
 4. **Vérification automatique** : elle doit être verte (voir [section 4](#4-vérifications-automatiques)). Sinon, on corrige sur la branche.
 5. **Fusionné** : fusion par *squash*, pour garder un commit par ticket dans `main`. Le ticket reçoit l'étiquette `à vérifier en jeu` si le banc ne peut pas tout prouver (affichage, sensation de fluidité).
 6. **Vérifié en jeu** : au test de la version (voir [section 7](#7-test-en-jeu)), l'étiquette est retirée. Un problème trouvé ouvre un nouveau ticket `bug`.
@@ -115,7 +115,7 @@ Le banc ne mesure ni le rendu ni la mémoire réelle du client. Ces deux points 
 1. Reproduire le bug, en jeu ou dans le banc.
 2. **Écrire d'abord le test qui échoue** dans `tests/scenario.lua` (ou une mesure dans `tests/perf.lua` pour un problème de performance).
 3. Corriger jusqu'à ce que le test passe.
-4. Demande de fusion avec `Ferme #N`. Le test reste dans le banc pour toujours : le même bug ne peut pas revenir sans être vu.
+4. Demande de fusion avec `Closes #N`. Le test reste dans le banc pour toujours : le même bug ne peut pas revenir sans être vu.
 
 Un bug que le banc ne peut pas reproduire (rendu, client particulier) est décrit dans le rapport de test en jeu de la version qui le corrige.
 
