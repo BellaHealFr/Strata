@@ -85,6 +85,8 @@ function Region:SetPoint(point, rel, relPoint, x, y)
 	end
 	self.point = { point, x, y }
 end
+function Region:ClearAllPoints() self.point, self.allPoints = nil, nil end
+function Region:SetAllPoints(rel) self.allPoints = rel or self.parent end
 function Region:SetTexCoord(...)
 	for i = 1, select("#", ...) do
 		local v = select(i, ...)

@@ -273,6 +273,9 @@ SlashCmdList.STRATA = function(msg)
 	elseif msg == "scan" then
 		ns.Print(ns.Scan() and L.SCANNED or L.CLOSE_WORLDMAP)
 		if ns.Rebuild then ns.Rebuild() end
+	elseif msg == "plein" or msg == "full" then
+		if not (StrataFrame and StrataFrame:IsShown()) then ns.Open() end
+		ns.ToggleFullscreen()
 	elseif msg == "bouton" or msg == "button" then
 		ns.ToggleMinimapButton()
 	elseif msg == "bench" then

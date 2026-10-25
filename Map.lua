@@ -629,11 +629,13 @@ local function CreateWindow()
 
 	local title = CreateFrame("Frame", nil, frame)
 	title:SetPoint("TOPLEFT", 8, -6)
-	title:SetPoint("TOPRIGHT", -32, -6)
+	title:SetPoint("TOPRIGHT", -58, -6)
 	title:SetHeight(22)
 	title:EnableMouse(true)
 	title:RegisterForDrag("LeftButton")
-	title:SetScript("OnDragStart", function() frame:StartMoving() end)
+	title:SetScript("OnDragStart", function()
+		if not db.fullscreen then frame:StartMoving() end
+	end)
 	title:SetScript("OnDragStop", function()
 		frame:StopMovingOrSizing()
 		local point, _, _, x, y = frame:GetPoint()
@@ -723,6 +725,52 @@ local function CreateWindow()
 		local point, _, _, x, y = frame:GetPoint()
 		db.point = { point, x, y }
 	end)
+	grip.isSizeGrip = true
+
+	-- Plein écran : la fenêtre couvre UIParent ; sa taille et sa position (db.w, db.h, db.point)
+	-- restent celles de la fenêtre, pour y revenir à l'identique. La carte garde son centre
+	-- (OnSizeChanged du ScrollFrame).
+	local fullscreen = CreateFrame("Button", nil, frame)
+	fullscreen:SetWidth(32)
+	fullscreen:SetHeight(32)
+	fullscreen:SetPoint("RIGHT", close, "LEFT", 8, 0)
+	fullscreen:SetHighlightTexture("Interface\\Buttons\\UI-Panel-MinimizeButton-Highlight", "ADD")
+	fullscreen.isFullscreenButton = true
+	local function ApplyFullscreen()
+		frame:ClearAllPoints()
+		if db.fullscreen then
+			frame:SetAllPoints(UIParent)
+			grip:Hide()
+			fullscreen:SetNormalTexture("Interface\\Buttons\\UI-Panel-SmallerButton-Up")
+			fullscreen:SetPushedTexture("Interface\\Buttons\\UI-Panel-SmallerButton-Down")
+		else
+			frame:SetWidth(db.w)
+			frame:SetHeight(db.h)
+			if db.point then
+				frame:SetPoint(db.point[1], UIParent, db.point[1], db.point[2], db.point[3])
+			else
+				frame:SetPoint("CENTER")
+			end
+			grip:Show()
+			fullscreen:SetNormalTexture("Interface\\Buttons\\UI-Panel-BiggerButton-Up")
+			fullscreen:SetPushedTexture("Interface\\Buttons\\UI-Panel-BiggerButton-Down")
+		end
+	end
+	function ns.ToggleFullscreen()
+		db.fullscreen = not db.fullscreen
+		ApplyFullscreen()
+	end
+	fullscreen:SetScript("OnClick", function(self)
+		ns.ToggleFullscreen()
+		if GameTooltip:IsOwned(self) then self:GetScript("OnEnter")(self) end
+	end)
+	fullscreen:SetScript("OnEnter", function(self)
+		GameTooltip:SetOwner(self, "ANCHOR_TOP")
+		GameTooltip:AddLine(db.fullscreen and L.WINDOWED or L.FULLSCREEN)
+		GameTooltip:Show()
+	end)
+	fullscreen:SetScript("OnLeave", function() GameTooltip:Hide() end)
+	ApplyFullscreen()
 
 	local me = Button(L.ME, 60)
 	me:SetPoint("BOTTOMLEFT", 12, 10)

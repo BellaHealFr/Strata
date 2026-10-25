@@ -464,3 +464,30 @@ do
 	local cy = ns.Zones[2].y + stormwind[4] + stormwind[2] / 2
 	check(ns.ZoneText("azeroth", cx, cy):find("(", 1, true) == nil, "pas de niveaux sur une ville : " .. ns.ZoneText("azeroth", cx, cy))
 end
+
+-- #4 : plein écran
+if not StrataFrame:IsShown() then Strata_Toggle() end
+ns.db.point, ns.db.w, ns.db.h = { "CENTER", 40, -20 }, 900, 640
+local fullscreen = find(StrataFrame, function(r) return r.kind == "Button" and r.isFullscreenButton end)
+check(fullscreen ~= nil, "bouton plein écran dans la barre de titre")
+fullscreen.scripts.OnClick(fullscreen)
+check(ns.db.fullscreen and StrataFrame.allPoints == UIParent, "plein écran : la carte couvre tout l'écran")
+check(ns.db.w == 900 and ns.db.h == 640 and ns.db.point[2] == 40, "plein écran : la taille et la position de la fenêtre restent retenues")
+local grabber = find(StrataFrame, function(r) return r.kind == "Button" and r.isSizeGrip end)
+check(grabber and not grabber:IsShown(), "plein écran : plus de poignée de redimensionnement")
+local moved
+local real = StrataFrame.StartMoving
+StrataFrame.StartMoving = function() moved = true end
+find(StrataFrame, function(r) return r.scripts and r.scripts.OnDragStart and r.parent == StrataFrame and r.kind == "Frame" end).scripts.OnDragStart()
+check(not moved, "plein écran : la fenêtre ne se déplace pas")
+StrataFrame.StartMoving = real
+-- Retenu à la réouverture
+Strata_Toggle() Strata_Toggle()
+check(StrataFrame.allPoints == UIParent, "plein écran retenu à la réouverture")
+-- Retour en fenêtre
+SlashCmdList.STRATA("plein")
+check(not ns.db.fullscreen and StrataFrame.allPoints == nil and StrataFrame.w == 900 and StrataFrame.h == 640
+	and StrataFrame.point and StrataFrame.point[1] == "CENTER" and StrataFrame.point[2] == 40,
+	"/strata plein : retour à la fenêtre, même taille et même position")
+check(grabber:IsShown(), "retour en fenêtre : poignée de redimensionnement revenue")
+Strata_Toggle()

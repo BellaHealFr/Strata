@@ -156,7 +156,7 @@ Les icônes sont posées sur un cadre **non mis à l'échelle** au-dessus du can
 
 Tous les textes affichés passent par `ns.L` (`Locale.lua`) : anglais par défaut, français si `GetLocale()` vaut `frFR`. Les noms de zones n'y sont pas : ils viennent de `GetMapZones`, déjà dans la langue du client.
 
-La fenêtre a un fond et une bordure de boîte de dialogue standard. Elle se déplace par la barre de titre et se redimensionne par la poignée en bas à droite. Échap la ferme (`UISpecialFrames`). Elle est indépendante de la carte de Blizzard, pour ne pas entrer en conflit avec les addons qui la modifient (Mapster, Magnify).
+La fenêtre a un fond et une bordure de boîte de dialogue standard. Elle se déplace par la barre de titre et se redimensionne par la poignée en bas à droite. En plein écran (bouton de la barre de titre, `/strata plein`), elle couvre `UIParent` ; sa taille et sa position de fenêtre (`w`, `h`, `point`) ne sont pas touchées, pour y revenir à l'identique. Échap la ferme (`UISpecialFrames`). Elle est indépendante de la carte de Blizzard, pour ne pas entrer en conflit avec les addons qui la modifient (Mapster, Magnify).
 
 ## 11. Données sauvegardées
 

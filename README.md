@@ -61,7 +61,7 @@ Il a été écrit pour le client 3.3.5, pas adapté d'une autre version du jeu. 
 
 ### La fenêtre
 - **Bouton autour de la minicarte** pour ouvrir la carte d'un clic, déplaçable, compatible avec les minicartes carrées.
-- Déplaçable, redimensionnable. Sa taille, sa position et la dernière vue de chaque carte sont retenues.
+- Déplaçable, redimensionnable, ou **en plein écran** d'un clic. Sa taille, sa position et la dernière vue de chaque carte sont retenues.
 - Échap la ferme. Un raccourci clavier se règle dans *Menu → Raccourcis → Strata*.
 - Les micro-cartes ajoutées par certains serveurs (grottes, zones de départ) sont prises en compte pour vous placer.
 
@@ -96,6 +96,7 @@ Aucune modification n'entre sans vérification automatique, budgets de performan
 | `/strata brouillard` | afficher ou masquer le fond des zones |
 | `/strata scan` | relire les cartes du client |
 | `/strata reset` | remettre la fenêtre et les vues à zéro |
+| `/strata plein` | plein écran ou fenêtre |
 | `/strata bouton` | afficher ou masquer le bouton de la minicarte |
 | `/strata bench` | mesurer les performances (environ 25 s), résultats à copier |
 | `/strata debug` | afficher ou masquer le compteur de performance |
