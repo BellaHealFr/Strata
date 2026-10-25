@@ -544,6 +544,7 @@ function ns.view.Show(name) ShowView(name) end
 function ns.view.Center(x, y, z) CenterOn(x, y, z) end
 function ns.view.Pan(dx, dy) SetView(zoom, ox + dx, oy + dy) end
 function ns.view.ZoomMin() return ZoomMin() end
+function ns.view.Size() return ViewSize() end
 function ns.view.Frame() return frame end
 function ns.view.Stop() drag, anim = nil, nil end
 
@@ -738,9 +739,11 @@ local function CreateWindow()
 		db.fog = not db.fog
 		ns.Refresh()
 	end)
-	hoverText = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-	hoverText:SetPoint("BOTTOMRIGHT", -28, 15)
+	-- La zone survolée, à droite de la barre de titre (la barre du bas porte la recherche).
+	hoverText = title:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+	hoverText:SetPoint("RIGHT", title, "RIGHT", -4, -2)
 	hoverText:SetJustifyH("RIGHT")
+	ns.CreateSearch(frame, fogButton)
 
 	frame:SetScript("OnUpdate", function(self, elapsed)
 		if not ns.measuring then return OnUpdate(self, elapsed) end

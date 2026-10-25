@@ -91,6 +91,7 @@ function ns.Scan()
 			SetMapZoom(c)
 			ns.maps[c] = ns.maps[c] or { zones = {} }
 			ns.maps[c].file = GetMapInfo()
+			ns.maps[c].name = select(c, GetMapContinents())
 			local names = { GetMapZones(c) }
 			for z = 1, #names do
 				ReadZone(c, z, names[z])

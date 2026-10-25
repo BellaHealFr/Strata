@@ -1,5 +1,13 @@
 # Historique des versions
 
+## Non publié
+
+### Ajouts
+- **Recherche de zones et de villes**, dans la barre du bas. Les résultats s'affichent à la frappe, avec leur continent ; un clic ou Entrée amène la carte sur la zone, au zoom où elle tient dans la fenêtre, en passant à l'Outreterre si besoin. Majuscules et accents ignorés (« foret » trouve « Forêt d'Elwynn ») ; le début du nom, puis le début d'un mot, passent avant le reste.
+
+### Modifications
+- Le nom de la zone survolée et ses coordonnées passent dans la barre de titre, à droite.
+
 ## 0.2.0-beta.1
 
 Première bêta de la 0.2 : tout ce qui est déjà prêt pour la 0.2.0, à essayer en avance. La version stable reste la 0.1.0.
