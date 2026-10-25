@@ -169,11 +169,13 @@ La fenêtre a un fond et une bordure de boîte de dialogue standard. Elle se dé
 | Icônes | jusqu'à 40 positions de raid toutes les 30 ms |
 | Mémoire | uniquement les zones visibles, plus 8 secondes de marge |
 
-Pistes déjà identifiées pour les versions suivantes : index spatial pour le survol (aujourd'hui un parcours de toutes les zones), mesure intégrée (`/strata bench`) et compteur de performance à l'écran.
+Ces coûts sont tenus par les budgets du banc (section 13). Pistes suivies dans la [feuille de route](FEUILLE-DE-ROUTE.md) : pic de textures pendant un tour rapide d'Azeroth (1 091 en 0.1.0, objectif sous 600), index spatial pour le survol, mesure en jeu (`/strata bench`).
 
 ## 13. Vérification
 
-Le banc de simulation (`tests/`) charge le vrai code de l'addon, dans l'ordre du `.toc`, dans un client 3.3.5 simulé (Lua 5.1 via lupa). Le client simulé reprend les 73 zones de `Data/Zones.lua`, des morceaux découverts factices, un joueur au milieu de la Forêt d'Elwynn et un membre de groupe. Le scénario vérifie notamment :
+Les règles (cycle des tickets, vérifications obligatoires, test en jeu) sont dans [SUIVI.md](SUIVI.md). Cette section décrit les outils.
+
+Le banc de simulation (`tests/`) charge le vrai code de l'addon, dans l'ordre du `.toc`, dans un client 3.3.5 simulé (Lua 5.1 via lupa). Chaque scénario part d'un client neuf. Le client simulé reprend les 73 zones de `Data/Zones.lua`, des morceaux découverts factices, un joueur au milieu de la Forêt d'Elwynn et un membre de groupe. Le scénario vérifie notamment :
 - la lecture des 73 zones (24 en Kalimdor, 29 dans les Royaumes de l'Est, 8 en Outreterre, 12 en Norfendre) ;
 - la flèche au centre de la vue à l'ouverture, et tournée ;
 - le survol du joueur, qui doit lire « Elwynn 50.0, 50.0 » ;
@@ -181,7 +183,9 @@ Le banc de simulation (`tests/`) charge le vrai code de l'addon, dans l'ordre du
 - les boutons, la vue Outreterre, les commandes, la mémorisation de la vue ;
 - les deux langues.
 
-Les fonctions `cos` et `sin` du client simulé prennent des degrés, comme dans le jeu, pour attraper une confusion.
+Les fonctions `cos` et `sin` du client simulé prennent des degrés, comme dans le jeu, pour attraper une confusion. Après chaque scénario, le banc refuse toute variable globale créée par l'addon hors de la liste attendue.
+
+**Performances** (`tests/perf.lua`). Le travail est **compté**, pas chronométré : instructions Lua exécutées, par centaines, via `debug.sethook`, et appels à l'API du client simulé (`SetPoint`, `SetTexture`, `CreateTexture`, `SetScale`, `SetMapZoom`, `GetPlayerMapPosition`…). Ces chiffres sont déterministes : même code, même mesure, sur n'importe quelle machine. Chaque situation (ouverture, immobile, déplacement, zoom, tour d'Azeroth, raid de 40, carte fermée) est comparée à son budget dans `tests/budgets.lua`, avec la valeur de référence en commentaire. Le tableau des mesures est publié dans le résumé de chaque vérification sur GitHub.
 
 À chaque envoi sur GitHub, la vérification automatique contrôle la syntaxe Lua 5.1, les fichiers du `.toc`, la cohérence des numéros de version (`Core.lua`, `Strata.toc`, `CHANGELOG.md`), les en-têtes de licence, et passe le banc en français et en anglais.
 
