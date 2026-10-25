@@ -2,7 +2,8 @@
 
 <!-- En quelques phrases : le problème ou le besoin, et la solution. -->
 
-Ferme #
+<!-- GitHub ne reconnaît que les mots-clés anglais : « Closes #N » ferme le ticket à la fusion. -->
+Closes #
 
 ## Vérifications (docs/SUIVI.md)
 
