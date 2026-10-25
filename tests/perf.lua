@@ -107,11 +107,41 @@ SlashCmdList.STRATA("debug")
 mean = measureFrames(150)
 budget("compteur masqué.ops par image", mean.ops)
 
--- 7. Carte fermée : rien ne doit tourner, même en changeant de zone.
+-- 6 ter. Vue Outreterre : les zones d'Azeroth quittées sont rendues (#22). Restent la carte du
+-- monde et celles des continents (4 x 12 tuiles).
+local azeroth
+for _, c in ipairs(child.children) do
+	if c.kind == "Frame" and c:IsShown() and c.scale ~= 1 then azeroth = c end
+end
+local function viewButton(label)
+	return find(StrataFrame, function(r) return r.kind == "Button" and r.text == label end)
+end
+-- Des zones chargées à l'écran (sur le joueur) au moment de changer de vue.
+viewButton(ns.L.ME).scripts.OnClick()
+tick(0.5)
+check(loadedTextures(azeroth) > 100, "zones d'Azeroth chargées avant de changer de vue : " .. loadedTextures(azeroth))
+viewButton(ns.L.OUTLAND).scripts.OnClick()
+tick(1)
+budget("vue Outreterre.textures gardées pour Azeroth", loadedTextures(azeroth))
+viewButton(ns.L.AZEROTH).scripts.OnClick()
+tick(1)
+
+-- 7. Carte fermée : rien ne doit tourner, même en changeant de zone, et les textures des zones
+-- sont rendues (#22).
 Strata_Toggle()
+-- Les tuiles de carte (compteur de Map.lua) : les icônes du joueur et du groupe partagent un
+-- seul petit fichier et ne comptent pas ici.
+budget("fermée.tuiles de carte chargées", ns.stats.textures)
 mean = measureFrames(150)
 budget("fermée.ops par image", mean.ops)
 local zone = measure(function() TEST.Fire("ZONE_CHANGED_NEW_AREA") end)
 budget("fermée.ops changement de zone", zone.ops)
+
+-- 8. Réouverture : les zones rendues à la fermeture se rechargent (#22). Coût d'une ouverture
+-- et de la première image.
+local reopen = measure(function() Strata_Toggle() frame() end)
+budget("réouverture.ops", reopen.ops)
+budget("réouverture.SetTexture", reopen.SetTexture)
+Strata_Toggle()
 
 check(not TEST.failed, (TEST.failed or 0) .. " budget(s) dépassé(s)")
