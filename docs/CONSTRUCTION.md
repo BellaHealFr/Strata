@@ -51,6 +51,7 @@ Version décrite : **0.1.0**.
 | `Data/Zones.lua` | Taille et position de chaque continent et zone, en yards (généré) |
 | `Core.lua` | Réglages, lecture des cartes du client, conversion des positions, commandes |
 | `Map.lua` | La fenêtre, le canevas, le zoom, les icônes |
+| `Nav.lua` | Flèche de guidage : cap vers la cible moins `GetPlayerFacing`, distance et temps estimé (vitesse d'approche lissée), arrivée à 10 yards, cible retenue ; `OnUpdate` seulement pendant un guidage |
 | `Pins.lua` | Épingles : posées sur la couche `pins` du canevas (un déplacement ne coûte rien par épingle, seul un zoom les redimensionne), fiche, liste, flèche TomTom (`AddZWaypoint` avec la place de la zone dans `GetMapZones`) ; fiche et liste créées au premier usage |
 | `Search.lua` | Recherche de zones et de villes : index des zones dessinées (noms du client), comparaison sans majuscules ni accents, classement par pertinence, déplacement de la carte sur la zone choisie |
 | `MinimapButton.lua` | Le bouton autour de la minicarte : position sur le cercle, ou sur le carré si `GetMinimapShape` renvoie `SQUARE` (ElvUI), angle retenu, aucun `OnUpdate` hors glisser |

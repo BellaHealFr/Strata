@@ -32,6 +32,7 @@ Dans chaque version : **mesurer d'abord, optimiser ensuite, ajouter enfin.** Une
 | Ticket | Note |
 |---|---|
 | [#21](../../../issues/21) Bouton de la minicarte | coût nul carte fermée (budget `fermée` inchangé) |
+| [#38](../../../issues/38) Flèche de guidage propre à Strata | ajouté en cours de 0.2 ; aucun coût hors guidage |
 | [#1](../../../issues/1) Recherche de zones et de villes | |
 | [#2](../../../issues/2) Épingles, note, couleur, TomTom | mesure « 200 épingles affichées » au banc |
 | [#3](../../../issues/3) Niveau des zones au survol | |
@@ -110,6 +111,7 @@ Côté banc, les budgets déterministes de `tests/budgets.lua` s'appliquent à c
 | Plein écran | 0.2 | [#4](../../../issues/4) |
 | Recherche (zones, villes, puis donjons et vols) | 0.2, 0.3 | [#1](../../../issues/1) |
 | Épingles, note, couleur, flèche TomTom | 0.2 | [#2](../../../issues/2) |
+| Point suivi et flèche de guidage (sans TomTom) | 0.2 | [#38](../../../issues/38) |
 | Niveaux des zones au survol | 0.2 | [#3](../../../issues/3) |
 | Accès rapide (bouton de minicarte) | 0.2 | [#21](../../../issues/21) |
 | Maîtres de vol, route et temps de vol | 0.3 | [#9](../../../issues/9) |

@@ -388,6 +388,7 @@ local function Rotate(tex, a)
 	local lrx, lry = tc(0.5, -0.5)
 	tex:SetTexCoord(ulx, uly, llx, lly, urx, ury, lrx, lry)
 end
+ns.RotateTexture = Rotate  -- aussi pour la flèche de guidage (Nav.lua)
 
 -- Position à l'écran (dans child) d'un point d'une vue en yards ; nil si autre vue.
 local function ToScreen(view, x, y)
