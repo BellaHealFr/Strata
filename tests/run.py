@@ -27,7 +27,8 @@ GLOBALS = ["Strata", "StrataDB", "StrataFrame", "Strata_Toggle", "SLASH_STRATA1"
            "BINDING_HEADER_STRATA", "BINDING_NAME_STRATA_TOGGLE",
            "StrataBenchFrame",
            "StrataMinimapButton", "StrataSearchBox",
-           "StrataPinCard", "StrataPinNote", "StrataPinList"]  # nommé pour qu'Échap ferme les résultats du bench (UISpecialFrames)
+           "StrataPinCard", "StrataPinNote", "StrataPinList",
+           "StrataArrow"]  # nommé pour qu'Échap ferme les résultats du bench (UISpecialFrames)
 
 SETUP = """
     TEST.events = {}
