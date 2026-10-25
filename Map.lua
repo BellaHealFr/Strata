@@ -468,12 +468,7 @@ local function UpdateHover()
 	end
 	local mx, my = Cursor()
 	local x, y = (mx - ox) / zoom / V.k, (my - oy) / zoom / V.k
-	local zone, zx, zy = ns.ZoneAt(V.name, x, y)
-	if zone then
-		hoverText:SetFormattedText("%s  %.1f, %.1f", zone, zx * 100, zy * 100)
-	else
-		hoverText:SetText("")
-	end
+	hoverText:SetText(ns.ZoneText(V.name, x, y) or "")
 end
 
 --------------------------------------------------------------------------------

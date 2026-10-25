@@ -52,7 +52,7 @@ Il a été écrit pour le client 3.3.5, pas adapté d'une autre version du jeu. 
 ### Vous et votre groupe
 - **Votre position**, avec une flèche orientée dans la direction où vous regardez. Le bouton *Moi* recentre la carte sur vous.
 - **Votre groupe ou votre raid**, aux couleurs de chaque classe.
-- **Zone et coordonnées** sous le curseur, et pour votre position dans la barre de titre.
+- **Zone, niveaux et coordonnées** sous le curseur (« Forêt d'Elwynn (1-10) », à la couleur des quêtes selon votre niveau), et votre position dans la barre de titre.
 
 ### Trouver un lieu
 - **Flèche de guidage** : « Suivre » sur une épingle, et une flèche à l'écran vous y mène, avec la distance et le temps restant, même carte fermée. Sans TomTom.
