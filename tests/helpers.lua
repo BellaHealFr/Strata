@@ -28,11 +28,12 @@ end
 function visibleTextures(region) return countTextures(region, true) end
 function loadedTextures(region) return countTextures(region, false) end
 
--- Une image : le temps avance de 20 ms et la fenêtre reçoit son OnUpdate.
+-- Une image : le temps avance de 20 ms et chaque cadre visible reçoit son OnUpdate.
 function frame()
 	TEST.time = TEST.time + 0.02
-	local f = StrataFrame
-	if f and f:IsVisible() and f.scripts.OnUpdate then f.scripts.OnUpdate(f, 0.02) end
+	for _, f in ipairs(TEST.updaters) do
+		if f:IsVisible() and f.scripts.OnUpdate then f.scripts.OnUpdate(f, 0.02) end
+	end
 end
 
 function tick(seconds)

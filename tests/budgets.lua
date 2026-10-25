@@ -39,6 +39,13 @@ BUDGETS = {
 	-- Raid de 40. [0.1.0]
 	["raid 40.ops par image"] = 119,                    -- [95.2]
 	["raid 40.GetPlayerMapPosition par image"] = 21,    -- [20]
+	-- [0.2] Régression corrigée : 18,6 en 0.1.0 (icônes de raid masquées en boucle).
+	["après raid.ops par image"] = 17,                  -- [13.6]
+
+	-- Compteur à l'écran (/strata debug). [0.2]
+	["compteur affiché.ops par image"] = 19,            -- [14.7]
+	["compteur affiché.UpdateAddOnMemoryUsage en 3 s"] = 2, -- [2] une lecture toutes les 2 s, pas plus
+	["compteur masqué.ops par image"] = 17,             -- [13.7] masqué, il ne coûte plus rien
 
 	-- Carte fermée. [0.1.0] Le résiduel vient de la boucle du banc lui-même.
 	["fermée.ops par image"] = 1,                       -- [0.6]

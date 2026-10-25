@@ -52,7 +52,12 @@ function Region:IsVisible()
 	end
 	return true
 end
-function Region:SetScript(name, fn) self.scripts[name] = fn end
+-- Les cadres qui ont un OnUpdate reçoivent chaque image (tests/helpers.lua, frame()).
+TEST.updaters = {}
+function Region:SetScript(name, fn)
+	if name == "OnUpdate" and fn and not self.scripts.OnUpdate then tinsert(TEST.updaters, self) end
+	self.scripts[name] = fn
+end
 function Region:GetScript(name) return self.scripts[name] end
 function Region:SetScale(s) assert(s > 0, "échelle nulle") count("SetScale") self.scale = s end
 function Region:GetScale() return self.scale end
@@ -147,6 +152,12 @@ UnitExists = function(u)
 end
 UnitIsUnit = function(a, b) return a == b or (a == "raid1" and b == "player") end
 UnitClass = function() return "Mage", "MAGE" end
+-- Mesure : un temps déterministe tiré du compte d'instructions (tests/helpers.lua).
+debugprofilestop = function() return (TEST.ops or 0) * 0.002 end
+GetFramerate = function() return 60 end
+UpdateAddOnMemoryUsage = function() count("UpdateAddOnMemoryUsage") end
+GetAddOnMemoryUsage = function() return 640 end
+time, date = os.time, os.date
 
 -- Cartes ----------------------------------------------------------------------------
 

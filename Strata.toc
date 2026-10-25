@@ -12,3 +12,4 @@ Locale.lua
 Data\Zones.lua
 Core.lua
 Map.lua
+Bench.lua

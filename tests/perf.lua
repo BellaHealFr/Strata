@@ -93,6 +93,20 @@ budget("raid 40.ops par image", mean.ops)
 budget("raid 40.GetPlayerMapPosition par image", mean.GetPlayerMapPosition)
 TEST.raid = 0
 
+-- Après le raid, la carte immobile doit retrouver son coût : en 0.1.0, les 39 icônes déjà
+-- masquées l'étaient encore à chaque mise à jour.
+mean = measureFrames(150)
+budget("après raid.ops par image", mean.ops)
+
+-- 6 bis. Compteur à l'écran : son coût quand il est affiché, et aucun coût une fois masqué.
+SlashCmdList.STRATA("debug")
+mean = measureFrames(150)
+budget("compteur affiché.ops par image", mean.ops)
+budget("compteur affiché.UpdateAddOnMemoryUsage en 3 s", mean.UpdateAddOnMemoryUsage * 150)
+SlashCmdList.STRATA("debug")
+mean = measureFrames(150)
+budget("compteur masqué.ops par image", mean.ops)
+
 -- 7. Carte fermée : rien ne doit tourner, même en changeant de zone.
 Strata_Toggle()
 mean = measureFrames(150)

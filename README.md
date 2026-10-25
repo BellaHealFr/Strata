@@ -85,6 +85,8 @@ Aucune modification n'entre sans vérification automatique, budgets de performan
 | `/strata brouillard` | afficher ou masquer le fond des zones |
 | `/strata scan` | relire les cartes du client |
 | `/strata reset` | remettre la fenêtre et les vues à zéro |
+| `/strata bench` | mesurer les performances (environ 25 s), résultats à copier |
+| `/strata debug` | afficher ou masquer le compteur de performance |
 | `/strata aide` | rappel des commandes |
 
 | Souris | Effet |
@@ -100,7 +102,7 @@ Aucune modification n'entre sans vérification automatique, budgets de performan
 | Client | 3.3.5a (build 12340), `## Interface: 30300` |
 | Langage | Lua 5.1, API WoW 3.3.5 |
 | Dépendances | aucune |
-| Code | environ 1 000 lignes, 4 fichiers, plus les rectangles de 126 cartes de zones |
+| Code | environ 1 300 lignes, 5 fichiers, plus les rectangles de 126 cartes de zones |
 
 Le fonctionnement complet est décrit dans **[docs/CONSTRUCTION.md](docs/CONSTRUCTION.md)** : données des zones, lecture des cartes du client, conversion des positions, couches de la carte, chargement et mémoire, zoom, performances et vérification.
 

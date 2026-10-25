@@ -19,8 +19,9 @@ Version décrite : **0.1.0**.
 11. [Données sauvegardées](#11-données-sauvegardées)
 12. [Performances](#12-performances)
 13. [Vérification](#13-vérification)
-14. [Limites connues](#14-limites-connues)
-15. [Contribuer](#contribuer)
+14. [Mesure en jeu](#14-mesure-en-jeu)
+15. [Limites connues](#15-limites-connues)
+16. [Contribuer](#contribuer)
 
 ---
 
@@ -50,6 +51,7 @@ Version décrite : **0.1.0**.
 | `Data/Zones.lua` | Taille et position de chaque continent et zone, en yards (généré) |
 | `Core.lua` | Réglages, lecture des cartes du client, conversion des positions, commandes |
 | `Map.lua` | La fenêtre, le canevas, le zoom, les icônes |
+| `Bench.lua` | Mesure en jeu : compteur à l'écran (`/strata debug`) et parcours de mesure (`/strata bench`) |
 | `Bindings.xml` | Le raccourci clavier |
 | `tools/extract_zones.py` | Génère `Data/Zones.lua` |
 | `tests/` | Banc de simulation : un client 3.3.5 simulé et un scénario |
@@ -189,7 +191,28 @@ Les fonctions `cos` et `sin` du client simulé prennent des degrés, comme dans 
 
 À chaque envoi sur GitHub, la vérification automatique contrôle la syntaxe Lua 5.1, les fichiers du `.toc`, la cohérence des numéros de version (`Core.lua`, `Strata.toc`, `CHANGELOG.md`), les en-têtes de licence, et passe le banc en français et en anglais.
 
-## 14. Limites connues
+## 14. Mesure en jeu
+
+Le banc compte le travail du code, mais ne voit ni le rendu ni la mémoire réelle du client. `Bench.lua` les mesure dans le jeu.
+
+**Coût nul hors mesure.** `Map.lua` tient deux compteurs entiers (textures et zones chargées, une addition à chaque chargement ou libération). Le chronométrage (`debugprofilestop`) ne tourne que si `ns.measuring` est vrai, c'est-à-dire compteur affiché ou bench en cours. Le banc le vérifie (`compteur masqué`, `immobile`).
+
+**Compteur (`/strata debug`).** Un cadre dans le coin de la carte, rafraîchi toutes les 0,5 s : images par seconde (`GetFramerate`), temps moyen et pire de Strata par image sur la dernière demi-seconde, temps de la dernière mise à jour des couches, textures et zones chargées, mémoire Lua de l'addon. La mémoire n'est relue que toutes les 2 s : `UpdateAddOnMemoryUsage` parcourt tous les addons du client.
+
+**Parcours (`/strata bench`).** Un cadre pilote la carte par l'accès interne `ns.view` (centrer, déplacer, zoomer), pendant que la souris est ignorée :
+
+| Phase | Durée | Ce qui se passe |
+|---|---|---|
+| Carte fermée | 2 s | référence d'images par seconde sans Strata |
+| Immobile | 3 s | carte centrée sur le joueur, zoom 6 |
+| Déplacement | 4 s | aller-retour à 360 px/s, pour ne jamais buter sur un bord |
+| Zoom | 4 s | va-et-vient entre les zooms 3 et 20 |
+| Tour d'Azeroth | 8 s | 20 points de la carte, 0,4 s chacun, zoom 6 |
+| Dézoomé | 2 s | le monde entier |
+
+Pour chaque phase : images par seconde, temps de Strata par image (moyenne et pire) et pic de textures chargées. Puis la mémoire Lua, et la comparaison avec les [objectifs de performance en jeu](FEUILLE-DE-ROUTE.md#objectifs-de-performance-en-jeu). La vue d'avant est rétablie, les résultats s'affichent dans une boîte de texte prête à copier dans un rapport de test, et sont enregistrés (`StrataDB.lastBench`).
+
+## 15. Limites connues
 
 - **Joints entre zones.** Sans textures masques, deux zones voisines ne se fondent pas : leurs fonds se superposent par rectangles. Une version pré-assemblée hors du jeu est à l'étude.
 - **Pas de zoom minicarte.** Les tuiles de la minicarte existent dans le client, mais sous des noms chiffrés. Il faudrait livrer leur table de correspondance.
