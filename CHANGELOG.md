@@ -11,6 +11,10 @@
 - `/strata bench` : la phase « Immobile » attend 0,5 s avant de mesurer, pour ne plus compter la réouverture de la carte.
 
 ### Performances
+- **Mémoire des textures divisée par près de trois en déplacement.** Les zones quittées gardent leurs textures 8 secondes, pour qu'un aller-retour ne recharge rien, mais au plus 160 textures cachées : au-delà, les plus anciennes sont rendues. Pic pendant un tour rapide d'Azeroth au banc : 1 091 → 387 textures ; au bench en jeu, le tour simulé passe de 1 500 à 444.
+- **Carte fermée, rien de superflu en mémoire.** Les textures des zones sont rendues dès la fermeture ; seules restent les cartes du monde et des continents (60 tuiles). Avant, les zones vues en dernier restaient chargées jusqu'à la réouverture (90 textures au bench en jeu, jusqu'à 380 au banc).
+- **Changement de vue.** Passer à l'Outreterre rend les zones d'Azeroth, qui restaient chargées indéfiniment (256 textures au banc).
+- La réouverture recharge les zones visibles en une fois (environ 200 tuiles), mesurée et bornée au banc.
 - Après un raid, la carte immobile retrouve son coût : les icônes des membres partis étaient masquées à nouveau 33 fois par seconde (−26 % de travail par image dans le banc après un raid de 40).
 - Rien n'est chronométré tant que ni le compteur ni le bench ne sont actifs.
 
