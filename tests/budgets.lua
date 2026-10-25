@@ -31,9 +31,10 @@ BUDGETS = {
 	["zoom.ops par image (moyenne)"] = 31,              -- [24.4]
 	["zoom.ops par image (pire)"] = 300,                -- [241]
 
-	-- Tour d'Azeroth : mémoire. [0.1.0] Objectif 0.2 : moins de 600 au pire moment.
-	["tour.textures chargées (pire moment)"] = 1150,    -- [1091]
-	["tour.CreateTexture"] = 850,                       -- [800] textures réutilisées, pas recréées
+	-- Tour d'Azeroth : mémoire. [0.2, #22] 1 091 et 800 en 0.1.0 : textures des zones cachées
+	-- plafonnées (MAX_HIDDEN), rendues à la fermeture et au changement de vue.
+	["tour.textures chargées (pire moment)"] = 485,     -- [387]
+	["tour.CreateTexture"] = 135,                       -- [108] textures réutilisées, pas recréées
 	["tour.textures chargées après 20 s"] = 64,         -- [51] tout ce qui est hors vue est rendu
 
 	-- Raid de 40. [0.1.0]
@@ -46,6 +47,13 @@ BUDGETS = {
 	["compteur affiché.ops par image"] = 19,            -- [14.7]
 	["compteur affiché.UpdateAddOnMemoryUsage en 3 s"] = 2, -- [2] une lecture toutes les 2 s, pas plus
 	["compteur masqué.ops par image"] = 17,             -- [13.7] masqué, il ne coûte plus rien
+
+	-- Mémoire des vues et de la carte fermée (#22). [0.2] Monde et continents : 4 x 12 tuiles.
+	["vue Outreterre.textures gardées pour Azeroth"] = 48,
+	["fermée.tuiles de carte chargées"] = 60,             -- [60] Azeroth 48 + Outreterre 12
+	-- Réouverture : les zones visibles se rechargent, une fois (#22). [0.2]
+	["réouverture.ops"] = 1350,                         -- [1084]
+	["réouverture.SetTexture"] = 260,                   -- [208]
 
 	-- Carte fermée. [0.1.0] Le résiduel vient de la boucle du banc lui-même.
 	["fermée.ops par image"] = 1,                       -- [0.6]

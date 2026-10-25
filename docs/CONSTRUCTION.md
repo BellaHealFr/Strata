@@ -123,6 +123,8 @@ Charger toutes les zones d'Azeroth représenterait plus de 5 000 textures. Strat
 - `UpdateLayers` calcule le rectangle visible et, pour chaque zone, si elle le touche et si elle est assez grande à l'écran ;
 - une zone qui devient visible charge ses tuiles (`LoadZone`) ;
 - une zone qui sort de la vue est masquée tout de suite, et rend ses textures **8 secondes** plus tard (`ReleaseHidden`, toutes les 2 secondes). Un aller-retour rapide ne recharge donc rien ;
+- les zones cachées mais encore chargées sont plafonnées à **160 textures** (`MAX_HIDDEN`) : au-delà, les plus anciennes sont rendues tout de suite. Sans ce plafond, un déplacement rapide accumulait plus de 1 000 textures en attente ;
+- **carte fermée**, toutes les zones rendent leurs textures ; seules restent les cartes du monde et des continents (60 tuiles), qui reviennent sans délai. **Changer de vue** rend de même les zones de la vue quittée ;
 - les textures rendues retournent dans une réserve par couche et sont réutilisées.
 
 Une couche qui a disparu en fondu est **masquée**, pas laissée à transparence nulle : le client ne dessine pas un objet masqué.
@@ -169,9 +171,9 @@ La fenêtre a un fond et une bordure de boîte de dialogue standard. Elle se dé
 | Déplacement, zoom | un `SetScale` et un `SetPoint` par image |
 | Vue qui change | parcours des 73 zones de la vue, au plus toutes les 80 ms |
 | Icônes | jusqu'à 40 positions de raid toutes les 30 ms |
-| Mémoire | uniquement les zones visibles, plus 8 secondes de marge |
+| Mémoire | les zones visibles, plus au plus 160 textures cachées pendant 8 s ; carte fermée : 60 tuiles |
 
-Ces coûts sont tenus par les budgets du banc (section 13). Pistes suivies dans la [feuille de route](FEUILLE-DE-ROUTE.md) : pic de textures pendant un tour rapide d'Azeroth (1 091 en 0.1.0, objectif sous 600), index spatial pour le survol, mesure en jeu (`/strata bench`).
+Ces coûts sont tenus par les budgets du banc (section 13). Pistes suivies dans la [feuille de route](FEUILLE-DE-ROUTE.md) : index spatial pour le survol (#6), saccade possible à la première ouverture (#8).
 
 ## 13. Vérification
 

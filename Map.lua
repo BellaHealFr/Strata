@@ -29,6 +29,8 @@ local ZOOM_STEP = 1.3
 local ZONE_MIN_PX, CITY_MIN_PX = 220, 90   -- largeur à l'écran où une zone commence à paraître
 local CONT_FROM, CONT_FULL = 1.4, 2.2      -- zoom où la carte du continent paraît, puis est pleine
 local RELEASE_AFTER = 8                    -- secondes hors de la vue avant de rendre les textures
+local MAX_HIDDEN = 160                     -- textures de zones cachées gardées au plus (les plus
+                                           -- anciennes rendues d'abord) : borne le pic en déplacement
 
 local frame, scroll, child, pins, hoverText, playerText, viewButton, fogButton
 local canvases = {}
@@ -37,6 +39,7 @@ local zoom, ox, oy = 1, 0, 0  -- échelle, et position à l'écran (px, y vers l
 local anim                    -- { target, mx, my } : zoom animé autour d'un point
 local drag                    -- { x, y, ox, oy } : déplacement à la souris
 local dirty = true
+local hidden = 0           -- textures des zones cachées mais encore chargées (délai de RELEASE_AFTER)
 
 -- Ce que la mesure (Bench.lua) lit. Le décompte des textures coûte une addition par texture ;
 -- le chronométrage des images ne tourne que si ns.measuring est vrai (compteur ou bench).
@@ -205,12 +208,26 @@ local function LoadZone(e)
 	stats.zones = stats.zones + 1
 end
 
-local function UnloadZone(e)
-	local L = V.layers
+local function ZoneTextures(e)
+	return #e.base + #e.over
+end
+
+-- Rend les textures d'une zone ; c : son canevas (celui affiché par défaut).
+local function UnloadZone(e, c)
+	local L = (c or V).layers
+	if e.hiddenAt then hidden = hidden - ZoneTextures(e) end
 	ReleaseAll(e.city and L.city or L.base, e.base)
 	ReleaseAll(L.over, e.over)
 	e.loaded, e.hiddenAt = nil, nil
 	stats.zones = stats.zones - 1
+end
+
+-- Rend toutes les zones d'un canevas : vue quittée, ou carte fermée. Les cartes du monde et des
+-- continents (quelques dizaines de tuiles) restent : elles reviennent sans délai.
+local function UnloadAll(c)
+	for _, e in ipairs(c.zones) do
+		if e.loaded then UnloadZone(e, c) end
+	end
 end
 
 -- Le continent sous un point du canevas (vue Azeroth) : celui dont une zone le contient.
@@ -301,6 +318,7 @@ local function UpdateLayers()
 		local visible = alpha > 0 and e.x < x1 and e.x + e.w > x0 and e.y < y1 and e.y + e.h > y0
 		if visible then
 			if not e.loaded then LoadZone(e) end
+			if e.hiddenAt then hidden = hidden - ZoneTextures(e) end
 			e.hiddenAt = nil
 			ShowAll(e.base, fog or e.city)
 			ShowAll(e.over, true)
@@ -310,7 +328,18 @@ local function UpdateLayers()
 			ShowAll(e.base, false)
 			ShowAll(e.over, false)
 			e.hiddenAt = now
+			hidden = hidden + ZoneTextures(e)
 		end
+	end
+
+	-- Trop de zones cachées encore chargées (déplacement rapide) : rendre les plus anciennes.
+	while hidden > MAX_HIDDEN do
+		local oldest
+		for _, e in ipairs(V.zones) do
+			if e.hiddenAt and (not oldest or e.hiddenAt < oldest.hiddenAt) then oldest = e end
+		end
+		if not oldest then break end
+		UnloadZone(oldest)
 	end
 
 	local contAlpha = Ramp(zoom / ZoomMin(), CONT_FROM, CONT_FULL)
@@ -454,6 +483,7 @@ end
 local function ShowView(name, centerOnPlayer)
 	if V then
 		SaveView()
+		if V.name ~= name then UnloadAll(V) end
 		V.frame:Hide()
 	end
 	canvases[name] = canvases[name] or BuildCanvas(name)
@@ -493,12 +523,7 @@ end
 local function RefreshZone(info)
 	for _, c in pairs(canvases) do
 		for _, e in ipairs(c.zones) do
-			if e.info == info and e.loaded then
-				local current = V
-				V = c
-				UnloadZone(e)
-				V = current
-			end
+			if e.info == info and e.loaded then UnloadZone(e, c) end
 		end
 	end
 	dirty = true
@@ -727,6 +752,9 @@ local function CreateWindow()
 	end)
 	frame:SetScript("OnHide", function()
 		SaveView()
+		-- Carte fermée : les zones ne servent plus, leurs textures sont rendues tout de suite.
+		for _, c in pairs(canvases) do UnloadAll(c) end
+		dirty = true
 		drag, anim = nil, nil
 		if not WorldMapFrame:IsShown() then SetMapToCurrentZone() end
 	end)
