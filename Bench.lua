@@ -142,7 +142,11 @@ local function Report(r)
 		lines[#lines + 1] = format("%s   %.0f   %s   %d", L.PHASES[p.key], p.fps, ms, p.peak)
 	end
 	lines[#lines + 1] = ""
-	lines[#lines + 1] = format(L.BENCH_MEMORY, r.memory)
+	-- Certains clients renvoient 0 pour la mémoire d'un addon (#27) : une mesure absente n'est
+	-- jamais présentée comme réussie.
+	local measured = r.memory and r.memory > 0
+	lines[#lines + 1] = measured and format(L.BENCH_MEMORY, r.memory) or L.BENCH_MEMORY_NONE
+	lines[#lines + 1] = format(L.BENCH_LUA_TOTAL, (r.luaTotal or 0) / 1024)
 	lines[#lines + 1] = ""
 	lines[#lines + 1] = L.BENCH_GOALS
 
@@ -153,7 +157,11 @@ local function Report(r)
 	lines[#lines + 1] = format(L.GOAL_FPS, still.fps, closed.fps, -drop * 100, Verdict(drop <= GOAL_FPS_DROP))
 	lines[#lines + 1] = format(L.GOAL_PAN, pan.ms or 0, pan.worst or 0,
 		Verdict((pan.ms or 0) < GOAL_PAN_AVG and (pan.worst or 0) < GOAL_PAN_WORST))
-	lines[#lines + 1] = format(L.GOAL_MEMORY, r.memory, Verdict(r.memory < GOAL_MEMORY))
+	if measured then
+		lines[#lines + 1] = format(L.GOAL_MEMORY, r.memory, Verdict(r.memory < GOAL_MEMORY))
+	else
+		lines[#lines + 1] = format(L.GOAL_MEMORY_NONE, L.TO_CHECK)
+	end
 	return table.concat(lines, "\n")
 end
 
@@ -184,7 +192,8 @@ local PHASES = {
 	{ key = "closed", time = 2, setup = function()
 		ns.view.Frame():Hide()
 	end },
-	{ key = "still", time = 3, setup = function(b)
+	-- 0,5 s d'attente : la réouverture de la carte n'est pas l'image immobile (#27).
+	{ key = "still", time = 3, warmup = 0.5, setup = function(b)
 		ns.Open()
 		local view, x, y = PlayerPoint()
 		ns.view.Show(view)
@@ -234,14 +243,15 @@ local function Finish(b, cancelled)
 		ns.Print(L.BENCH_STOPPED)
 		return
 	end
-	local r = { version = ns.version, time = time(), phases = b.results, memory = Memory() }
+	local r = { version = ns.version, time = time(), phases = b.results, memory = Memory(),
+		luaTotal = collectgarbage("count") }
 	ns.db.lastBench = r
 	ns.Print(L.BENCH_DONE)
 	ShowResults(r)
 end
 
 local function StartPhase(b, i)
-	b.index, b.t, b.frames = i, 0, 0
+	b.index, b.t, b.frames, b.warm = i, 0, 0, nil
 	b.peak = stats.textures
 	ResetWindow()
 	local phase = PHASES[i]
@@ -256,6 +266,7 @@ local function EndPhase(b)
 		ms = stats.frames > 0 and stats.ms / stats.frames or nil,
 		worst = stats.frames > 0 and stats.worst or nil,
 		peak = b.peak,
+		warmup = phase.warmup,
 	}
 end
 
@@ -264,6 +275,13 @@ driver:SetScript("OnUpdate", function(self, elapsed)
 	b.t, b.frames = b.t + elapsed, b.frames + 1
 	if stats.textures > b.peak then b.peak = stats.textures end
 	local phase = PHASES[b.index]
+	if phase.warmup and not b.warm then
+		if b.t < phase.warmup then return end
+		-- Fin de l'attente : la mesure de la phase commence ici.
+		b.warm, b.t, b.frames, b.peak = true, 0, 0, stats.textures
+		ResetWindow()
+		return
+	end
 	if b.t >= phase.time then
 		EndPhase(b)
 		if b.index == #PHASES then return Finish(b) end
