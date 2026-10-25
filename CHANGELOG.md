@@ -3,6 +3,7 @@
 ## Non publié
 
 ### Ajouts
+- **Maîtres de vol** : ceux de votre faction (et les neutres) sur la carte, à partir de l'échelle d'un continent. Vos vols appris en vert, les autres grisés. L'infobulle donne le nom du maître de vol, sa zone, et si le vol est appris. Les vols appris sont relevés à chaque ouverture de la carte des vols, par personnage ; dès deux maîtres de vol visités sur un continent, tous vos vols connus de ce continent sont reconnus. `/strata vols` les affiche ou les masque.
 - **Plein écran** : un bouton dans la barre de titre (ou `/strata plein`) passe la carte en plein écran, et la ramène à la fenêtre avec exactement la même taille et la même position. Le mode est retenu à la réouverture.
 - **Niveaux des zones au survol** : la tranche de niveaux de la zone survolée s'affiche à côté de son nom (« Forêt d'Elwynn (1-10) »), à la couleur des quêtes selon votre niveau : rouge trop haut, jaune à votre niveau, vert puis gris quand c'est facile.
 - **Flèche de guidage**, propre à Strata : le bouton « Suivre » d'une épingle affiche une flèche à l'écran, même carte fermée, qui pointe vers elle selon votre direction, avec la distance et le temps estimé d'après votre vitesse. « Arrivé » à moins de 10 m, puis elle se retire ; « Autre continent » si la cible est ailleurs. Déplaçable, clic droit pour arrêter, reprise après un rechargement. Aucun besoin de TomTom, dont le bouton reste disponible à côté.
