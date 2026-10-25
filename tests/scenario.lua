@@ -98,3 +98,40 @@ check(ns.db.views.azeroth ~= nil, "vue mémorisée")
 
 print(format("\n%d textures créées, %d SetTexture, %d messages", TEST.textures, TEST.setTextureCalls, #TEST.prints))
 for _, m in ipairs(TEST.prints) do print("     chat : " .. m) end
+
+-- Compteur de performance
+SlashCmdList.STRATA("debug")
+check(StrataFrame:IsShown() and ns.measuring, "/strata debug ouvre la carte et active la mesure")
+tick(1)
+local counter = find(StrataFrame, function(r) return r.kind == "FontString" and r.text and r.text:find("%d+ Ko") or (r.text and r.text:find("%d+ KB")) end)
+check(counter ~= nil, "compteur affiché : " .. (counter and counter.text:gsub("\n", " | ") or "?"))
+SlashCmdList.STRATA("debug")
+check(not ns.measuring, "/strata debug à nouveau : compteur masqué, mesure arrêtée")
+
+-- Parcours de mesure
+local _, z0, cx0, cy0 = ns.view.Get()
+SlashCmdList.STRATA("bench")
+check(ns.benching and ns.measuring, "/strata bench démarre")
+tick(30)
+check(not ns.benching and not ns.measuring, "bench terminé, mesure arrêtée")
+local r = ns.db.lastBench
+check(r and #r.phases == 6, "six phases enregistrées")
+for _, p in ipairs(r.phases) do
+	check(p.fps > 0 and p.peak >= 0, format("phase %s : %.0f IPS, %s ms, %d textures max", p.key, p.fps, p.ms and format("%.2f", p.ms) or "-", p.peak))
+end
+check(r.phases[1].ms == nil and r.phases[3].ms ~= nil, "carte fermée sans temps Strata, déplacement chronométré")
+check(r.memory == 640, "mémoire relevée")
+check(StrataBenchFrame and StrataBenchFrame:IsShown(), "fenêtre des résultats affichée")
+local box = find(StrataBenchFrame, function(r) return r.kind == "EditBox" end)
+check(box.text and box.text:find(ns.L.PHASES.tour, 1, true) and box.text:find(ns.L.BENCH_GOALS, 1, true), "résultats copiables avec les phases et les objectifs")
+local name, z1, cx1, cy1 = ns.view.Get()
+check(name == "azeroth" and math.abs(z1 - z0) < 1e-6 and math.abs(cx1 - cx0) < 1e-3 and math.abs(cy1 - cy0) < 1e-3, "vue d'avant le bench rétablie")
+
+-- Arrêt en cours de route
+SlashCmdList.STRATA("bench")
+tick(3)
+SlashCmdList.STRATA("bench")
+check(not ns.benching and not ns.measuring, "/strata bench pendant la mesure l'arrête")
+StrataBenchFrame:Hide()
+Strata_Toggle()
+check(not StrataFrame:IsShown(), "fermeture après la mesure")
