@@ -147,3 +147,13 @@ Puis :
 3. demande de fusion « Strata X.Y.Z », fusion ;
 4. étiquette `vX.Y.Z` sur `main` : la publication vérifie les numéros et le rapport de test, construit l'archive et crée la version ;
 5. le jalon est fermé.
+
+### Bêtas (pré-versions)
+
+Entre deux versions, une bêta permet aux joueurs d'essayer ce qui est déjà fusionné.
+
+- Numéro `X.Y.Z-beta.N` (par exemple `0.2.0-beta.1`), dans `Core.lua`, `Strata.toc` et une section `## X.Y.Z-beta.N` du `CHANGELOG.md`.
+- Étiquette `vX.Y.Z-beta.N` : la publication la marque **Pre-release** sur GitHub (toute étiquette avec un tiret). La version stable reste celle proposée par défaut.
+- Rapport de test en jeu **allégé**, obligatoire lui aussi : [`docs/tests-en-jeu/MODELE-BETA.md`](tests-en-jeu/MODELE-BETA.md). Un seul serveur suffit, mais aucune erreur Lua, les nouveautés de la bêta essayées et un `/strata bench`.
+- Conditions : vérification de `main` verte, aucun ticket `bloquant` ou `régression` ouvert. Le jalon n'a pas besoin d'être terminé.
+- Les tickets de la bêta gardent l'étiquette `à vérifier en jeu` jusqu'au rapport complet de la version finale.
