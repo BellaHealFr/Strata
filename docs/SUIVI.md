@@ -128,7 +128,9 @@ Le protocole couvre :
 - **Fonctions** : la liste de la version, plus les tickets marqués `à vérifier en jeu`.
 - **Rendu** : joints, couches, villes, transitions entre continents, captures jointes.
 - **Performances en jeu** (à partir de la 0.2, avec `/strata bench`) : images par seconde carte ouverte, temps de Strata par image en déplacement, mémoire de l'addon après un tour d'Azeroth. Objectifs dans [FEUILLE-DE-ROUTE.md](FEUILLE-DE-ROUTE.md#objectifs-de-performance-en-jeu).
-- **Clients** : au moins deux serveurs différents, un client frFR et un client enUS.
+- **Clients** : sur les serveurs et les langues de client dont on dispose.
+  - Un seul serveur suffit quand l'auteur n'en a qu'un ; tout autre serveur essayé est noté dans le rapport.
+  - L'anglais est vérifié par le banc, qui fait tourner tout l'addon dans les deux langues à chaque modification, et par les retours des joueurs sur les bêtas. Un essai sur un client enUS, quand il est possible, est noté dans le rapport.
 - **Compatibilité** : avec Questie, Mapster, Magnify, TomTom et ElvUI chargés.
 
 ## 8. Sortie d'une version

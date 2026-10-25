@@ -17,8 +17,8 @@ Commit testé :
 | | frFR | |
 | | enUS | |
 
-- [ ] Testé sur au moins deux serveurs différents
-- [ ] Testé sur un client frFR et un client enUS
+- [ ] Testé sur au moins un serveur ; chaque serveur essayé est noté dans le tableau
+- [ ] Langue anglaise couverte : banc vert en enUS, et client enUS essayé si possible (noté ci-dessus)
 
 ## Erreurs
 
