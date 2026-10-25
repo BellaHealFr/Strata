@@ -14,3 +14,4 @@ tests export-ignore
 .gitignore export-ignore
 .editorconfig export-ignore
 tools export-ignore
+docs/tests-en-jeu export-ignore
