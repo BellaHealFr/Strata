@@ -55,6 +55,7 @@ Il a été écrit pour le client 3.3.5, pas adapté d'une autre version du jeu. 
 - **Zone et coordonnées** sous le curseur, et pour votre position dans la barre de titre.
 
 ### La fenêtre
+- **Bouton autour de la minicarte** pour ouvrir la carte d'un clic, déplaçable, compatible avec les minicartes carrées.
 - Déplaçable, redimensionnable. Sa taille, sa position et la dernière vue de chaque carte sont retenues.
 - Échap la ferme. Un raccourci clavier se règle dans *Menu → Raccourcis → Strata*.
 - Les micro-cartes ajoutées par certains serveurs (grottes, zones de départ) sont prises en compte pour vous placer.
@@ -90,6 +91,7 @@ Aucune modification n'entre sans vérification automatique, budgets de performan
 | `/strata brouillard` | afficher ou masquer le fond des zones |
 | `/strata scan` | relire les cartes du client |
 | `/strata reset` | remettre la fenêtre et les vues à zéro |
+| `/strata bouton` | afficher ou masquer le bouton de la minicarte |
 | `/strata bench` | mesurer les performances (environ 25 s), résultats à copier |
 | `/strata debug` | afficher ou masquer le compteur de performance |
 | `/strata aide` | rappel des commandes |
@@ -107,7 +109,7 @@ Aucune modification n'entre sans vérification automatique, budgets de performan
 | Client | 3.3.5a (build 12340), `## Interface: 30300` |
 | Langage | Lua 5.1, API WoW 3.3.5 |
 | Dépendances | aucune |
-| Code | environ 1 300 lignes, 5 fichiers, plus les rectangles de 126 cartes de zones |
+| Code | environ 1 500 lignes, 6 fichiers, plus les rectangles de 126 cartes de zones |
 
 Le fonctionnement complet est décrit dans **[docs/CONSTRUCTION.md](docs/CONSTRUCTION.md)** : données des zones, lecture des cartes du client, conversion des positions, couches de la carte, chargement et mémoire, zoom, performances et vérification.
 

@@ -211,3 +211,49 @@ box = find(StrataBenchFrame, function(r) return r.kind == "EditBox" end)
 check(box.text:find(ns.L.BENCH_SCAN:match("^[^:]+"), 1, true), "lecture des cartes dans les résultats du bench")
 StrataBenchFrame:Hide()
 Strata_Toggle()
+
+-- #21 : bouton de la minicarte
+TEST.Fire("PLAYER_LOGIN")
+local mb = StrataMinimapButton
+check(mb ~= nil and mb.parent == Minimap, "bouton créé sur la minicarte à la connexion")
+check(find(mb, function(r) return r.path == "Interface\\Minimap\\MiniMap-TrackingBorder" end) ~= nil, "bordure standard des boutons de minicarte")
+local function distance()
+	local _, x, y = unpack(mb.point)
+	return math.sqrt(x * x + y * y), x, y
+end
+local d = distance()
+check(math.abs(d - 80) < 1, format("bouton sur le cercle de la minicarte (%.1f px du centre)", d))
+
+-- Clic gauche : ouvrir puis fermer
+if StrataFrame:IsShown() then Strata_Toggle() end
+mb.scripts.OnClick(mb, "LeftButton")
+check(StrataFrame:IsShown(), "clic gauche : la carte s'ouvre")
+mb.scripts.OnClick(mb, "LeftButton")
+check(not StrataFrame:IsShown(), "clic gauche à nouveau : la carte se ferme")
+mb.scripts.OnEnter(mb)
+check(true, "infobulle sans erreur")
+
+-- Glisser : l'angle suit le curseur et il est retenu (curseur au nord de la minicarte)
+local s = Minimap:GetEffectiveScale()
+TEST.cursor = { 1000 * s, (800 + 200) * s }
+mb.scripts.OnDragStart(mb)
+check(mb.scripts.OnUpdate ~= nil, "glisser : le bouton suit le curseur")
+mb.scripts.OnUpdate(mb, 0.02)
+mb.scripts.OnDragStop(mb)
+local _, nx, ny = distance()
+check(math.abs(ns.db.minimapAngle - 90) < 0.01 and math.abs(nx) < 0.01 and ny > 79, format("angle retenu : %.1f°, bouton au nord", ns.db.minimapAngle))
+check(mb.scripts.OnUpdate == nil, "fin du glisser : plus rien ne tourne")
+
+-- Minicarte carrée (ElvUI) : le bouton longe le bord du carré
+GetMinimapShape = function() return "SQUARE" end
+ns.db.minimapAngle = 45
+ns.PlaceMinimapButton()
+local _, sx, sy = distance()
+check(math.abs(sx - 80) < 0.5 and math.abs(sy - 80) < 0.5, format("minicarte carrée : bouton dans le coin (%.1f, %.1f)", sx, sy))
+GetMinimapShape = nil
+
+-- /strata bouton
+SlashCmdList.STRATA("bouton")
+check(not mb:IsShown() and ns.db.hideMinimapButton, "/strata bouton masque le bouton")
+SlashCmdList.STRATA("button")
+check(mb:IsShown() and not ns.db.hideMinimapButton, "/strata button le remet")
