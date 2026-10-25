@@ -51,6 +51,7 @@ Version décrite : **0.1.0**.
 | `Data/Zones.lua` | Taille et position de chaque continent et zone, en yards (généré) |
 | `Core.lua` | Réglages, lecture des cartes du client, conversion des positions, commandes |
 | `Map.lua` | La fenêtre, le canevas, le zoom, les icônes |
+| `MinimapButton.lua` | Le bouton autour de la minicarte : position sur le cercle, ou sur le carré si `GetMinimapShape` renvoie `SQUARE` (ElvUI), angle retenu, aucun `OnUpdate` hors glisser |
 | `Bench.lua` | Mesure en jeu : compteur à l'écran (`/strata debug`) et parcours de mesure (`/strata bench`) |
 | `Bindings.xml` | Le raccourci clavier |
 | `tools/extract_zones.py` | Génère `Data/Zones.lua` |
