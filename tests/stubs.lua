@@ -8,7 +8,11 @@
 local noop = function() end
 tinsert = table.insert
 
-TEST = { textures = 0, loaded = 0, setTextureCalls = 0, time = 0, cursor = { 500, 400 }, prints = {} }
+TEST = { textures = 0, loaded = 0, setTextureCalls = 0, time = 0, cursor = { 500, 400 }, prints = {}, raid = 0 }
+
+-- Appels à l'API comptés pour les budgets de performance (tests/helpers.lua).
+TEST.count = setmetatable({}, { __index = function() return 0 end })
+local function count(name) TEST.count[name] = TEST.count[name] + 1 end
 
 -- Cadres -----------------------------------------------------------------------
 
@@ -50,7 +54,7 @@ function Region:IsVisible()
 end
 function Region:SetScript(name, fn) self.scripts[name] = fn end
 function Region:GetScript(name) return self.scripts[name] end
-function Region:SetScale(s) assert(s > 0, "échelle nulle") self.scale = s end
+function Region:SetScale(s) assert(s > 0, "échelle nulle") count("SetScale") self.scale = s end
 function Region:GetScale() return self.scale end
 function Region:GetEffectiveScale()
 	local s, r = 1, self
@@ -64,6 +68,7 @@ function Region:GetTop() return 900 end
 function Region:IsMouseOver() return TEST.mouseOver end
 function Region:GetPoint() return "CENTER", nil, "CENTER", 0, 0 end
 function Region:SetPoint(point, rel, relPoint, x, y)
+	count("SetPoint")
 	if type(rel) == "number" then x, y = rel, relPoint end
 	for _, v in ipairs({ x, y }) do
 		assert(v == nil or (v == v and v ~= math.huge and v ~= -math.huge), "SetPoint : valeur invalide")
@@ -79,6 +84,7 @@ function Region:SetTexCoord(...)
 end
 function Region:SetTexture(path, ...)
 	TEST.setTextureCalls = TEST.setTextureCalls + 1
+	if path ~= nil then count("SetTexture") end
 	if type(path) == "string" then
 		assert(not path:find("nil"), "chemin de texture avec nil : " .. path)
 	end
@@ -87,6 +93,7 @@ function Region:SetTexture(path, ...)
 end
 function Region:CreateTexture()
 	TEST.textures = TEST.textures + 1
+	count("CreateTexture")
 	return NewRegion("Texture", self)
 end
 function Region:CreateFontString()
@@ -130,9 +137,15 @@ GetTime = function() return TEST.time end
 GetCursorPosition = function() return TEST.cursor[1], TEST.cursor[2] end
 GetLocale = function() return TEST.locale or "frFR" end
 GetPlayerFacing = function() return 1.0 end
-GetNumRaidMembers = function() return 0 end
-UnitExists = function(u) return u == "party1" end
-UnitIsUnit = function(a, b) return a == b end
+-- TEST.raid > 0 : un raid de TEST.raid joueurs, dont le joueur (raid1).
+GetNumRaidMembers = function() return TEST.raid end
+local function RaidIndex(u) return tonumber(u:match("^raid(%d+)$")) end
+UnitExists = function(u)
+	local i = RaidIndex(u)
+	if i then return i <= TEST.raid end
+	return u == "party1"
+end
+UnitIsUnit = function(a, b) return a == b or (a == "raid1" and b == "player") end
 UnitClass = function() return "Mage", "MAGE" end
 
 -- Cartes ----------------------------------------------------------------------------
@@ -152,7 +165,7 @@ function TEST.SetupMaps(Zones)
 	end
 end
 
-SetMapZoom = function(c, z) map.c, map.z = c, z or 0 end
+SetMapZoom = function(c, z) count("SetMapZoom") map.c, map.z = c, z or 0 end
 GetMapZones = function(c) return unpack(zoneLists[c]) end
 GetMapInfo = function()
 	if map.c <= 0 then return nil end
@@ -173,11 +186,17 @@ end
 local function ElwynnIndex()
 	for i, f in ipairs(zoneLists[2]) do if f == "Elwynn" then return i end end
 end
-SetMapToCurrentZone = function() map.c, map.z = 2, ElwynnIndex() end
+SetMapToCurrentZone = function() count("SetMapToCurrentZone") map.c, map.z = 2, ElwynnIndex() end
 
--- Le joueur à 50 %, 50 % de la Forêt d'Elwynn ; party1 à 60 %, 40 %.
+-- Le joueur à 50 %, 50 % de la Forêt d'Elwynn ; party1 à 60 %, 40 % ; le raid en cercle autour.
 GetPlayerMapPosition = function(unit)
+	count("GetPlayerMapPosition")
 	if map.c ~= 2 or map.z ~= ElwynnIndex() then return 0, 0 end
+	local i = RaidIndex(unit)
+	if i and i <= TEST.raid then
+		local a = i / TEST.raid * 2 * math.pi
+		return 0.5 + 0.2 * math.cos(a), 0.5 + 0.2 * math.sin(a)
+	end
 	if unit == "player" then return 0.5, 0.5 end
 	if unit == "party1" then return 0.6, 0.4 end
 	return 0, 0

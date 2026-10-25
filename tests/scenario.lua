@@ -6,36 +6,6 @@
 
 local ns = Strata
 
-local function find(region, test)
-	if test(region) then return region end
-	for _, c in ipairs(region.children) do
-		local r = find(c, test)
-		if r then return r end
-	end
-end
-
-local function visibleTextures(region, n)
-	n = n or 0
-	if region.kind == "Texture" and region:IsVisible() and region.path then n = n + 1 end
-	for _, c in ipairs(region.children) do n = visibleTextures(c, n) end
-	return n
-end
-
-local function tick(seconds)
-	local t = 0
-	while t < seconds do
-		TEST.time = TEST.time + 0.02
-		t = t + 0.02
-		local f = StrataFrame
-		if f and f:IsVisible() and f.scripts.OnUpdate then f.scripts.OnUpdate(f, 0.02) end
-	end
-end
-
-local function check(cond, msg)
-	if not cond then error("ÉCHEC : " .. msg, 2) end
-	print("ok   " .. msg)
-end
-
 -- Chargement
 TEST.Fire("ADDON_LOADED", "Strata")
 check(ns.db and ns.db.fog == true, "réglages initialisés")
