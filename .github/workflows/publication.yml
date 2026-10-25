@@ -39,6 +39,8 @@ jobs:
           cat >> notes.md <<'EOF'
 
           ---
+          Les versions marquées *Pre-release* sont des bêtas, pour essayer les nouveautés en avance ; la version marquée *Latest* est la stable.
+
           **Installation** : téléchargez l'archive `Strata-*.zip` ci-dessous (pas « Source code »), quittez complètement le jeu, décompressez-la dans `World of Warcraft/Interface/AddOns/`, puis relancez le jeu.
 
           **Install**: download the `Strata-*.zip` archive below (not "Source code"), quit the game, unzip it into `World of Warcraft/Interface/AddOns/`, then restart the game.
@@ -51,5 +53,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           name: Strata ${{ github.ref_name }}
+          # Une étiquette avec un tiret (v0.2.0-beta.1) est une bêta : pré-version, pas la version stable.
+          prerelease: ${{ contains(github.ref_name, '-') }}
           body_path: notes.md
           files: Strata-*.zip

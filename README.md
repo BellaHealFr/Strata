@@ -6,6 +6,9 @@
 
 *Par un passionné de Wrath of the Lich King, pour tous ceux qui aiment encore explorer Azeroth.*
 
+![Statut](https://img.shields.io/badge/statut-en%20d%C3%A9veloppement-orange)
+[![Version stable](https://img.shields.io/github/v/release/BellaHealFr/Strata?label=stable&color=1e90ff)](../../releases/latest)
+[![Bêta](https://img.shields.io/github/v/release/BellaHealFr/Strata?include_prereleases&label=b%C3%AAta&color=orange)](../../releases)
 ![Client](https://img.shields.io/badge/client-3.3.5a-1e90ff)
 ![Lua](https://img.shields.io/badge/Lua-5.1-000080)
 ![Dépendances](https://img.shields.io/badge/d%C3%A9pendances-aucune-success)
@@ -16,6 +19,8 @@
 </div>
 
 ---
+
+> **Projet en développement.** Strata fonctionne déjà, mais il grandit version après version vers une carte aussi complète qu'OpenMap (voir la [feuille de route](#feuille-de-route)). La **version stable** est la plus sûre ; les **bêtas** (marquées *Pre-release*) permettent d'essayer les nouveautés en avance. Vos retours, même courts, aident beaucoup : ouvrez un ticket dans l'onglet **Issues**.
 
 Strata remplace le découpage zone par zone de la carte par **une seule carte continue**. Kalimdor, les Royaumes de l'Est et le Norfendre sont placés à leur vraie position, et l'on passe du monde entier à la rue d'une ville d'un simple coup de molette, sans jamais changer de carte.
 
@@ -71,7 +76,7 @@ Aucune modification n'entre sans vérification automatique, budgets de performan
 
 ## Installation
 
-1. Téléchargez `Strata-x.y.z.zip` dans **[Releases](../../releases)**.
+1. Téléchargez `Strata-x.y.z.zip` dans **[Releases](../../releases)** : la version marquée *Latest* est la stable ; celles marquées *Pre-release* sont des bêtas, pour essayer les nouveautés en avance.
    > **Attention** : n'utilisez pas le bouton vert *Code → Download ZIP*, qui produit un dossier `Strata-main` que le jeu ne charge pas.
 2. Quittez complètement le jeu.
 3. Décompressez l'archive dans `World of Warcraft/Interface/AddOns/`. Vous devez obtenir `AddOns/Strata/Strata.toc`.
@@ -116,9 +121,11 @@ Pour proposer une modification du code, lisez **[CONTRIBUTING.md](CONTRIBUTING.m
 
 ## English
 
+> **In development.** Strata already works and grows release after release. The stable release is the safest; betas (marked *Pre-release*) let you try new features early. Feedback is welcome in the **Issues** tab.
+
 **Strata** is a seamless world map for WoW 3.3.5a. Kalimdor, the Eastern Kingdoms and Northrend are stitched into one map at their true position, with smooth zoom at the cursor and free panning. Outland has its own view. It shows your explored areas, your position and facing, and your party or raid. It uses only the maps already in your game client: no client patch, nothing server-side, any 3.3.5 server.
 
-Download `Strata-x.y.z.zip` from **[Releases](../../releases)** (not *Code → Download ZIP*), unzip it into `World of Warcraft/Interface/AddOns/`, and type `/strata` in game. The interface follows your client's language (English or French). Bug reports and ideas are welcome in English in the **Issues** tab.
+Download `Strata-x.y.z.zip` from **[Releases](../../releases)** (*Latest* is stable, *Pre-release* is a beta; not *Code → Download ZIP*), unzip it into `World of Warcraft/Interface/AddOns/`, and type `/strata` in game. The interface follows your client's language (English or French). Bug reports and ideas are welcome in English in the **Issues** tab.
 
 ## Retrouvez mes projets pour WotLK 3.3.5
 
