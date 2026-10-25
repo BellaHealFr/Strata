@@ -17,6 +17,7 @@ Ce programme est distribué dans l'espoir qu'il sera utile, mais **sans aucune g
 ## Éléments tiers
 
 - `Data/Zones.lua` contient la taille et la position des continents et des zones (données factuelles du client, table `WorldMapArea`), reprises de la table `WorldMapSize` de **Astrolabe** par Esamynn (LGPL 2.1). Aucun code d'Astrolabe n'est inclus dans l'addon. Le fichier de référence `tools/ref/Astrolabe-r107.lua`, qui sert seulement à régénérer ces données, est distribué sous sa propre licence : [`tools/ref/lgpl.txt`](tools/ref/lgpl.txt).
+- `Data/Levels.lua` contient les tranches de niveaux des zones (données factuelles du jeu), relevées sur le **Warcraft Wiki**.
 - L'idée d'une carte du monde continue vient d'**OpenMap** pour WoW Forever (licence MIT). Strata est écrit pour l'API 3.3.5 : aucun code ni aucune image d'OpenMap n'est inclus.
 - World of Warcraft est une marque de Blizzard Entertainment. Strata n'est ni affilié à Blizzard Entertainment, ni approuvé par lui. Aucun fichier du jeu n'est distribué avec l'addon : les cartes du jeu sont seulement référencées par leur chemin dans le client.
 
@@ -41,5 +42,6 @@ This program is distributed in the hope that it will be useful, but **WITHOUT AN
 ## Third-party material
 
 - `Data/Zones.lua` holds the size and position of continents and zones (factual client data, `WorldMapArea` table), taken from the `WorldMapSize` table of **Astrolabe** by Esamynn (LGPL 2.1). No Astrolabe code ships in the add-on. The reference file `tools/ref/Astrolabe-r107.lua`, used only to regenerate that data, is distributed under its own license: [`tools/ref/lgpl.txt`](tools/ref/lgpl.txt).
+- `Data/Levels.lua` holds the zones' level ranges (factual game data), taken from the **Warcraft Wiki**.
 - The idea of a seamless world map comes from **OpenMap** for WoW Forever (MIT license). Strata is written for the 3.3.5 API: no OpenMap code or art is included.
 - World of Warcraft is a trademark of Blizzard Entertainment. Strata is neither affiliated with nor endorsed by Blizzard Entertainment. No game file ships with the add-on: the game's maps are only referenced by their path in the client.

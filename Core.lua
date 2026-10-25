@@ -218,6 +218,20 @@ function ns.ZoneAt(view, x, y)
 	end
 end
 
+-- Le texte d'un point : zone, tranche de niveaux (Data/Levels.lua) à la couleur des quêtes du
+-- joueur (milieu de la tranche), coordonnées. nil hors des zones dessinées.
+function ns.ZoneText(view, x, y)
+	local zone, zx, zy, _, file = ns.ZoneAt(view, x, y)
+	if not zone then return end
+	local range = file and ns.Levels[file]
+	if range then
+		local color = GetQuestDifficultyColor(floor((range[1] + range[2]) / 2))
+		local levels = range[1] == range[2] and tostring(range[1]) or (range[1] .. "-" .. range[2])
+		zone = format("%s |cff%02x%02x%02x(%s)|r", zone, color.r * 255, color.g * 255, color.b * 255, levels)
+	end
+	return format("%s  %.1f, %.1f", zone, zx * 100, zy * 100)
+end
+
 --------------------------------------------------------------------------------
 -- Démarrage, événements, commandes
 

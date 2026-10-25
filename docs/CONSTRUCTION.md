@@ -49,6 +49,7 @@ Version décrite : **0.1.0**.
 | `Strata.toc` | Déclaration de l'addon pour le client |
 | `Locale.lua` | Textes de l'interface, en anglais et en français |
 | `Data/Zones.lua` | Taille et position de chaque continent et zone, en yards (généré) |
+| `Data/Levels.lua` | Tranche de niveaux de chaque zone, que le client ne donne pas (Warcraft Wiki) ; affichée au survol par `ns.ZoneText`, à la couleur de `GetQuestDifficultyColor` |
 | `Core.lua` | Réglages, lecture des cartes du client, conversion des positions, commandes |
 | `Map.lua` | La fenêtre, le canevas, le zoom, les icônes |
 | `Nav.lua` | Flèche de guidage : cap vers la cible moins `GetPlayerFacing`, distance et temps estimé (vitesse d'approche lissée), arrivée à 10 yards, cible retenue ; `OnUpdate` seulement pendant un guidage |

@@ -80,7 +80,9 @@ check(arrow:IsVisible(), "bouton Moi : retour sur Azeroth et le joueur")
 -- Curseur sur le joueur (centre de la vue ; GetLeft = 100, GetTop = 900 dans les stubs)
 TEST.cursor = { 100 + child.w / 2, 900 - child.h / 2 }
 tick(0.2)
-check(hover.text and hover.text:find("Elwynn  50.0, 50.0", 1, true), "survol sur le joueur : " .. tostring(hover.text))
+check(hover.text and hover.text:find("Elwynn", 1, true) and hover.text:find("50.0, 50.0", 1, true), "survol sur le joueur : " .. tostring(hover.text))
+-- #3 : tranche de niveaux de la zone survolée, à la couleur des quêtes
+check(hover.text:find("(1-10)", 1, true) and hover.text:find("|cff", 1, true), "niveaux de la zone au survol : " .. hover.text)
 
 -- Commandes
 SlashCmdList.STRATA("help")
@@ -437,3 +439,28 @@ check(ns.db.target and ns.db.target.x == followPin.x and arrowFrame:IsShown(), "
 ns.StopFollow()
 ns.db.pins = {}
 Strata_Toggle()
+
+-- #3 : intégrité des tranches de niveaux (Data/Levels.lua)
+local drawn, unknown, missing, inverted = {}, {}, {}, {}
+for c = 1, 4 do
+	for file, Z in pairs(ns.Zones[c].zones) do
+		if not Z[5] then drawn[file] = true end
+	end
+end
+for file, r in pairs(ns.Levels) do
+	if not drawn[file] then unknown[#unknown + 1] = file end
+	if r[1] > r[2] then inverted[#inverted + 1] = file end
+end
+for file in pairs(drawn) do
+	if not ns.Levels[file] and not ns.CITIES[file] and file ~= "Moonglade" then missing[#missing + 1] = file end
+end
+check(#unknown == 0, "chaque tranche de niveaux correspond à une vraie zone " .. table.concat(unknown, ", "))
+check(#missing == 0, "chaque zone hors ville a sa tranche " .. table.concat(missing, ", "))
+check(#inverted == 0, "minimum jamais au-dessus du maximum " .. table.concat(inverted, ", "))
+-- Pas de niveaux sur une ville
+do
+	local stormwind = ns.Zones[2].zones.Stormwind
+	local cx = ns.Zones[2].x + stormwind[3] + stormwind[1] / 2
+	local cy = ns.Zones[2].y + stormwind[4] + stormwind[2] / 2
+	check(ns.ZoneText("azeroth", cx, cy):find("(", 1, true) == nil, "pas de niveaux sur une ville : " .. ns.ZoneText("azeroth", cx, cy))
+end
