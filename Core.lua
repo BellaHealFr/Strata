@@ -84,6 +84,8 @@ end
 -- de Blizzard est fermée, et on revient à la zone du joueur après.
 function ns.Scan()
 	if WorldMapFrame:IsShown() then return false end
+	-- Chronométrée à chaque fois (un seul appel, une fois par session) : /strata bench l'affiche (#8).
+	local start = debugprofilestop()
 	for c in pairs(Zones) do
 		if c > 0 then
 			SetMapZoom(c)
@@ -97,6 +99,7 @@ function ns.Scan()
 	end
 	SetMapToCurrentZone()
 	ns.scanned = true
+	ns.scanMs = debugprofilestop() - start
 	return true
 end
 

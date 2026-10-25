@@ -212,7 +212,7 @@ Le banc compte le travail du code, mais ne voit ni le rendu ni la mémoire réel
 | Tour d'Azeroth | 8 s | 20 points de la carte, 0,4 s chacun, zoom 6 |
 | Dézoomé | 2 s | le monde entier |
 
-Pour chaque phase : images par seconde, temps de Strata par image (moyenne et pire) et pic de textures chargées. Puis la mémoire Lua de l'addon et la mémoire Lua totale du jeu (`collectgarbage("count")`), et la comparaison avec les [objectifs de performance en jeu](FEUILLE-DE-ROUTE.md#objectifs-de-performance-en-jeu). Certains clients renvoient 0 pour la mémoire d'un addon : elle est alors indiquée « indisponible » et l'objectif « à revoir », jamais « ok ». La vue d'avant est rétablie, les résultats s'affichent dans une boîte de texte prête à copier dans un rapport de test, et sont enregistrés (`StrataDB.lastBench`).
+Pour chaque phase : images par seconde, temps de Strata par image (moyenne et pire) et pic de textures chargées. Puis la durée de la lecture des cartes à la première ouverture de la session (`ns.Scan`, chronométrée à chaque fois), la mémoire Lua de l'addon et la mémoire Lua totale du jeu (`collectgarbage("count")`), et la comparaison avec les [objectifs de performance en jeu](FEUILLE-DE-ROUTE.md#objectifs-de-performance-en-jeu). Certains clients renvoient 0 pour la mémoire d'un addon : elle est alors indiquée « indisponible » et l'objectif « à revoir », jamais « ok ». La vue d'avant est rétablie, les résultats s'affichent dans une boîte de texte prête à copier dans un rapport de test, et sont enregistrés (`StrataDB.lastBench`).
 
 ## 15. Limites connues
 
