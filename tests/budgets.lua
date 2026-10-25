@@ -47,6 +47,9 @@ BUDGETS = {
 	["ZoneAt.ops pour 100 appels"] = 130,               -- [104]
 	["survol.ops par image"] = 11,                      -- [8.4]
 
+	-- Recherche (#1) [0.2] : construction de l'index comprise dans la première frappe.
+	["recherche.ops par frappe"] = 42,                  -- [33.4]
+
 	-- Compteur à l'écran (/strata debug). [0.2]
 	["compteur affiché.ops par image"] = 11,           -- [8.5]
 	["compteur affiché.UpdateAddOnMemoryUsage en 3 s"] = 2, -- [2] une lecture toutes les 2 s, pas plus

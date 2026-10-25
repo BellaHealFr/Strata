@@ -54,6 +54,9 @@ Il a été écrit pour le client 3.3.5, pas adapté d'une autre version du jeu. 
 - **Votre groupe ou votre raid**, aux couleurs de chaque classe.
 - **Zone et coordonnées** sous le curseur, et pour votre position dans la barre de titre.
 
+### Trouver un lieu
+- **Recherche de zones et de villes** dans la barre du bas : tapez quelques lettres, cliquez, la carte y va. Majuscules et accents sans importance.
+
 ### La fenêtre
 - **Bouton autour de la minicarte** pour ouvrir la carte d'un clic, déplaçable, compatible avec les minicartes carrées.
 - Déplaçable, redimensionnable. Sa taille, sa position et la dernière vue de chaque carte sont retenues.
@@ -109,7 +112,7 @@ Aucune modification n'entre sans vérification automatique, budgets de performan
 | Client | 3.3.5a (build 12340), `## Interface: 30300` |
 | Langage | Lua 5.1, API WoW 3.3.5 |
 | Dépendances | aucune |
-| Code | environ 1 500 lignes, 6 fichiers, plus les rectangles de 126 cartes de zones |
+| Code | environ 1 800 lignes, 7 fichiers, plus les rectangles de 126 cartes de zones |
 
 Le fonctionnement complet est décrit dans **[docs/CONSTRUCTION.md](docs/CONSTRUCTION.md)** : données des zones, lecture des cartes du client, conversion des positions, couches de la carte, chargement et mémoire, zoom, performances et vérification.
 

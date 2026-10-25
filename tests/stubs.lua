@@ -54,6 +54,10 @@ function Region:IsVisible()
 end
 -- Les cadres qui ont un OnUpdate reçoivent chaque image (tests/helpers.lua, frame()).
 TEST.updaters = {}
+function Region:HookScript(name, fn)
+	local old = self.scripts[name]
+	self:SetScript(name, old and function(...) old(...) fn(...) end or fn)
+end
 function Region:SetScript(name, fn)
 	if name == "OnUpdate" and fn and not self.scripts.OnUpdate then tinsert(TEST.updaters, self) end
 	self.scripts[name] = fn
@@ -108,7 +112,11 @@ function Region:CreateFontString()
 	fs.SetFormattedText = function(s, f, ...) s.text = format(f, ...) end
 	return fs
 end
-function Region:SetText(t) self.text = t end
+-- Comme dans le jeu, changer le texte d'un champ déclenche son OnTextChanged (userInput faux).
+function Region:SetText(t)
+	self.text = t
+	if self.kind == "EditBox" and self.scripts.OnTextChanged then self.scripts.OnTextChanged(self, false) end
+end
 function Region:GetText() return self.text end
 function Region:SetScrollChild(c) self.scrollChild = c end
 
@@ -183,6 +191,7 @@ end
 
 SetMapZoom = function(c, z) count("SetMapZoom") map.c, map.z = c, z or 0 end
 GetMapZones = function(c) return unpack(zoneLists[c]) end
+GetMapContinents = function() return "Kalimdor", "Royaumes de l'Est", "Outreterre", "Norfendre" end
 GetMapInfo = function()
 	if map.c <= 0 then return nil end
 	if map.z == 0 then return CONT_FILES[map.c] end
