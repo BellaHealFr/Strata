@@ -38,6 +38,11 @@ local anim                    -- { target, mx, my } : zoom animé autour d'un po
 local drag                    -- { x, y, ox, oy } : déplacement à la souris
 local dirty = true
 
+-- Ce que la mesure (Bench.lua) lit. Le décompte des textures coûte une addition par texture ;
+-- le chronométrage des images ne tourne que si ns.measuring est vrai (compteur ou bench).
+ns.stats = { textures = 0, zones = 0, frames = 0, ms = 0, worst = 0, layersMs = 0 }
+local stats = ns.stats
+
 --------------------------------------------------------------------------------
 -- Textures
 
@@ -47,6 +52,7 @@ local function Acquire(layer)
 		tex = layer:CreateTexture(nil, "ARTWORK")
 	end
 	tex:Show()
+	stats.textures = stats.textures + 1
 	return tex
 end
 
@@ -55,6 +61,7 @@ local function Release(layer, tex)
 	tex:Hide()
 	tex:ClearAllPoints()
 	tinsert(layer.pool, tex)
+	stats.textures = stats.textures - 1
 end
 
 local function Place(tex, layer, x, y, w, h, u, v)
@@ -195,6 +202,7 @@ local function LoadZone(e)
 	e.over = {}
 	AddOverlays(e.over, L.over, e.info.overlays, e.x, e.y, e.w, e.h)
 	e.loaded = true
+	stats.zones = stats.zones + 1
 end
 
 local function UnloadZone(e)
@@ -202,6 +210,7 @@ local function UnloadZone(e)
 	ReleaseAll(e.city and L.city or L.base, e.base)
 	ReleaseAll(L.over, e.over)
 	e.loaded, e.hiddenAt = nil, nil
+	stats.zones = stats.zones - 1
 end
 
 -- Le continent sous un point du canevas (vue Azeroth) : celui dont une zone le contient.
@@ -404,7 +413,10 @@ local function UpdatePins()
 			end
 		end
 	end
-	for i = n + 1, #members do members[i]:Hide() end
+	-- Seulement celles affichées la fois d'avant : après un raid, 39 icônes déjà masquées
+	-- le seraient encore 33 fois par seconde.
+	for i = n + 1, members.shown or 0 do members[i]:Hide() end
+	members.shown = n
 
 	if view then
 		local zone, zx, zy = ns.ZoneAt(view, x, y)
@@ -493,6 +505,24 @@ local function RefreshZone(info)
 end
 
 --------------------------------------------------------------------------------
+-- Accès à la vue pour la mesure (Bench.lua)
+
+ns.view = {}
+
+function ns.view.Get()
+	if not V then return end
+	local vw, vh = ViewSize()
+	return V.name, zoom, (vw / 2 - ox) / zoom, (vh / 2 - oy) / zoom, V.w, V.h
+end
+
+function ns.view.Show(name) ShowView(name) end
+function ns.view.Center(x, y, z) CenterOn(x, y, z) end
+function ns.view.Pan(dx, dy) SetView(zoom, ox + dx, oy + dy) end
+function ns.view.ZoomMin() return ZoomMin() end
+function ns.view.Frame() return frame end
+function ns.view.Stop() drag, anim = nil, nil end
+
+--------------------------------------------------------------------------------
 -- La fenêtre
 
 local function OnUpdate(self, elapsed)
@@ -510,7 +540,13 @@ local function OnUpdate(self, elapsed)
 
 	self.layerWait = (self.layerWait or 0) - elapsed
 	if dirty and self.layerWait <= 0 then
-		UpdateLayers()
+		if ns.measuring then
+			local t = debugprofilestop()
+			UpdateLayers()
+			stats.layersMs = debugprofilestop() - t
+		else
+			UpdateLayers()
+		end
 		self.layerWait = 0.08
 	end
 	self.pinWait = (self.pinWait or 0) - elapsed
@@ -620,11 +656,13 @@ local function CreateWindow()
 	scroll:EnableMouse(true)
 	scroll:EnableMouseWheel(true)
 	scroll:SetScript("OnMouseWheel", function(self, delta)
+		if ns.benching then return end
 		local mx, my = Cursor()
 		local target = (anim and anim.target or zoom) * ZOOM_STEP ^ delta
 		anim = { target = max(ZoomMin(), min(ZOOM_MAX, target)), mx = mx, my = my }
 	end)
 	scroll:SetScript("OnMouseDown", function(self, button)
+		if ns.benching then return end
 		if button == "LeftButton" then
 			local mx, my = Cursor()
 			anim = nil
@@ -679,7 +717,14 @@ local function CreateWindow()
 	hoverText:SetPoint("BOTTOMRIGHT", -28, 15)
 	hoverText:SetJustifyH("RIGHT")
 
-	frame:SetScript("OnUpdate", OnUpdate)
+	frame:SetScript("OnUpdate", function(self, elapsed)
+		if not ns.measuring then return OnUpdate(self, elapsed) end
+		local t = debugprofilestop()
+		OnUpdate(self, elapsed)
+		local ms = debugprofilestop() - t
+		stats.frames, stats.ms = stats.frames + 1, stats.ms + ms
+		if ms > stats.worst then stats.worst = ms end
+	end)
 	frame:SetScript("OnHide", function()
 		SaveView()
 		drag, anim = nil, nil
