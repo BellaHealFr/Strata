@@ -202,3 +202,12 @@ for _, view in ipairs({ "azeroth", "outland" }) do
 	end
 end
 check(diffs == 0, format("recherche de zone identique au parcours complet sur %d points (%d écarts)", points, diffs))
+
+-- #8 : la durée de la lecture des cartes (première ouverture) figure dans les résultats du bench.
+check(type(ns.scanMs) == "number" and ns.scanMs >= 0, format("lecture des cartes chronométrée : %.2f ms", ns.scanMs or -1))
+SlashCmdList.STRATA("bench")
+tick(30)
+box = find(StrataBenchFrame, function(r) return r.kind == "EditBox" end)
+check(box.text:find(ns.L.BENCH_SCAN:match("^[^:]+"), 1, true), "lecture des cartes dans les résultats du bench")
+StrataBenchFrame:Hide()
+Strata_Toggle()

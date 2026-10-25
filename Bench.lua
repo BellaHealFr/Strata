@@ -21,6 +21,8 @@ local GOAL_MEMORY = 2048     -- Ko de mémoire Lua après le parcours
 -- Textures chargées au plus fort : la vraie mémoire de Strata, et mesurable sur tous les clients
 -- (certains renvoient 0 pour la mémoire Lua d'un addon, #27).
 local GOAL_TEXTURES = 600
+-- Lecture des cartes à la première ouverture : tenir dans une image à 60 IPS (#8).
+local GOAL_SCAN = 16
 
 local overlay, overlayText, results, resultsBox
 local bench
@@ -163,6 +165,7 @@ local function Report(r)
 	local peak = 0
 	for _, p in ipairs(r.phases) do peak = math.max(peak, p.peak) end
 	lines[#lines + 1] = format(L.GOAL_TEXTURES, peak, Verdict(peak < GOAL_TEXTURES))
+	if r.scanMs then lines[#lines + 1] = format(L.BENCH_SCAN, r.scanMs, Verdict(r.scanMs < GOAL_SCAN)) end
 	if measured then
 		lines[#lines + 1] = format(L.GOAL_MEMORY, r.memory, Verdict(r.memory < GOAL_MEMORY))
 	else
@@ -250,7 +253,7 @@ local function Finish(b, cancelled)
 		return
 	end
 	local r = { version = ns.version, time = time(), phases = b.results, memory = Memory(),
-		luaTotal = collectgarbage("count") }
+		luaTotal = collectgarbage("count"), scanMs = ns.scanMs }
 	ns.db.lastBench = r
 	ns.Print(L.BENCH_DONE)
 	ShowResults(r)
