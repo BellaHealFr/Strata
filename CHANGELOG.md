@@ -1,5 +1,13 @@
 # Historique des versions
 
+## Non publié
+
+### Suivi et vérifications
+- **Budgets de performance au banc.** Le travail de chaque situation (ouverture, carte immobile, déplacement, zoom, tour d'Azeroth, raid de 40, carte fermée) est compté en instructions Lua et en appels à l'API, et comparé à un budget. Un dépassement fait échouer la vérification. Les mesures sont publiées dans le résumé de chaque vérification.
+- Le banc refuse toute variable globale créée par l'addon en dehors de la liste attendue.
+- La publication d'une version exige un rapport de test en jeu validé (`docs/tests-en-jeu/`).
+- Cycle des tickets, définition de « terminé » et règles de vérification : `docs/SUIVI.md`. Plan des versions 0.2 à 0.5 : `docs/FEUILLE-DE-ROUTE.md`.
+
 ## 0.1.0
 
 Première version publique.

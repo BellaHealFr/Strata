@@ -25,6 +25,13 @@ jobs:
           [ "$tag" = "$core" ] && [ "$tag" = "$toc" ] || { echo "::error::L'étiquette ne correspond pas aux numéros de version du code"; exit 1; }
           echo "VERSION=$tag" >> "$GITHUB_ENV"
 
+      - name: Exiger le rapport de test en jeu
+        run: |
+          f="docs/tests-en-jeu/$VERSION.md"
+          [ -f "$f" ] || { echo "::error::Rapport de test en jeu absent : $f (docs/SUIVI.md, section 7)"; exit 1; }
+          if grep -q '^- \[ \]' "$f"; then echo "::error::Cases non cochées dans $f"; exit 1; fi
+          grep -qx 'Résultat : validé' "$f" || { echo "::error::$f ne conclut pas par « Résultat : validé »"; exit 1; }
+
       - name: Extraire les notes de version
         run: |
           awk -v v="## $VERSION" '$0==v{f=1;next} /^## /{if(f)exit} f' CHANGELOG.md > notes.md

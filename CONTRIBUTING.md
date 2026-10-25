@@ -16,7 +16,7 @@ Avant d'ouvrir un ticket, vérifiez qu'il n'existe pas déjà. Les fonctions pr�
 
 1. **Discutez-en d'abord** dans un ticket si la modification est importante : cela évite de travailler pour rien.
 2. Créez une copie du dépôt (*Fork*), puis une branche au nom parlant (`recherche-zones`, `correction-joints`…).
-3. Lisez **[docs/CONSTRUCTION.md](docs/CONSTRUCTION.md)**, qui explique le fonctionnement complet. Sa section [Contribuer](docs/CONSTRUCTION.md#contribuer) donne les règles :
+3. Lisez **[docs/SUIVI.md](docs/SUIVI.md)**, qui fixe le cycle d'un ticket et les vérifications obligatoires, puis **[docs/CONSTRUCTION.md](docs/CONSTRUCTION.md)**, qui explique le fonctionnement complet. Sa section [Contribuer](docs/CONSTRUCTION.md#contribuer) donne les règles :
    - Lua 5.1 et API 3.3.5 uniquement ;
    - aucune bibliothèque embarquée ;
    - chaque texte affiché en français **et** en anglais (`Locale.lua`) ;
@@ -29,7 +29,7 @@ Avant d'ouvrir un ticket, vérifiez qu'il n'existe pas déjà. Les fonctions pr�
    ```
 5. Ouvrez une demande de fusion (*Pull Request*) et remplissez la liste de vérifications.
 
-La vérification automatique (syntaxe Lua 5.1, fichiers du `.toc`, numéros de version, en-têtes de licence, banc de simulation) doit être verte.
+La vérification automatique (syntaxe Lua 5.1, fichiers du `.toc`, numéros de version, en-têtes de licence, banc de simulation, budgets de performance) doit être verte : la branche `main` refuse la fusion sinon. Un budget dépassé se corrige dans le code ; le relever demande une raison écrite (voir [docs/SUIVI.md](docs/SUIVI.md#5-budgets-de-performance)).
 
 ## Style
 

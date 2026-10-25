@@ -48,7 +48,7 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Banc de simulation (français et anglais)
+      - name: Banc de simulation, fonctions et budgets de performance (français et anglais)
         run: |
           pip install --quiet lupa
           python tests/run.py frFR

@@ -60,12 +60,14 @@ Strata en est à ses débuts. Les prochaines versions reprennent, adaptées à l
 
 | Version | Au programme |
 |---|---|
-| **0.2** | recherche de zones et de villes, épingles avec note et flèche TomTom, niveau des zones au survol, plein écran, mesure des performances |
+| **0.2** | mesure des performances en jeu, mémoire allégée, bouton de la minicarte, recherche de zones et de villes, épingles avec note et flèche TomTom, niveau des zones au survol, plein écran |
 | **0.3** | maîtres de vol (appris et inconnus, route et temps de vol), routes des bateaux et zeppelins, entrées de donjons et de raids, PNJ utiles, objectifs de quêtes |
 | **0.4** | plume pour dessiner sur la carte, partage d'épingles, menu et options, fenêtre des nouveautés |
 | **0.5** | zoom au niveau de la minicarte, fondu entre zones pré-assemblé |
 
-Le détail de chaque fonction est suivi dans les **[jalons](../../milestones)** et les **[tickets](../../issues)**.
+Le plan complet, l'ordre des tâches et les critères de sortie de chaque version sont dans **[docs/FEUILLE-DE-ROUTE.md](docs/FEUILLE-DE-ROUTE.md)**. Chaque fonction est suivie dans les **[jalons](../../milestones)** et les **[tickets](../../issues)**.
+
+Aucune modification n'entre sans vérification automatique, budgets de performance compris, et aucune version ne sort sans test en jeu : les règles sont dans **[docs/SUIVI.md](docs/SUIVI.md)**.
 
 ## Installation
 
