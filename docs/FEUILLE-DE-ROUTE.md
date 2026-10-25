@@ -83,13 +83,14 @@ Dans chaque version : **mesurer d'abord, optimiser ensuite, ajouter enfin.** Une
 
 ## Objectifs de performance en jeu
 
-Mesurés avec `/strata bench` à chaque test en jeu, à partir de la 0.2. Les valeurs ci-dessous sont **provisoires** : elles seront confirmées ou resserrées au premier bench en jeu, puis ne pourront que baisser.
+Mesurés avec `/strata bench` à chaque test en jeu. Premier bench en jeu (Way of Elendil, 0.2 en cours) : −3 % d'images par seconde carte ouverte, 0,02 ms par image en moyenne. Ces valeurs ne peuvent que baisser ; les objectifs seront resserrés quand #22 sera terminé.
 
 | Mesure | Objectif |
 |---|---|
 | Images par seconde, carte ouverte et immobile, comparées à carte fermée | au plus 10 % de moins |
 | Temps de Strata par image en déplacement | moyenne sous 1 ms, pire image sous 5 ms |
-| Mémoire Lua de l'addon après un tour d'Azeroth | sous 2 Mo |
+| Textures chargées au plus fort pendant le bench | sous 600 (#22) ; 1 392 au premier bench en jeu |
+| Mémoire Lua de l'addon après un tour d'Azeroth | sous 2 Mo, quand le client la donne (certains renvoient 0 pour tous les addons, #27) |
 | Carte fermée | aucun coût mesurable |
 
 Côté banc, les budgets déterministes de `tests/budgets.lua` s'appliquent à chaque modification (voir [SUIVI.md](SUIVI.md#5-budgets-de-performance)).

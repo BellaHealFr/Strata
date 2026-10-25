@@ -154,3 +154,10 @@ Strata_Toggle()
 
 -- #27 : la phase « Immobile » ne compte pas la réouverture de la carte.
 check(ns.db.lastBench.phases[2].key == "still" and ns.db.lastBench.phases[2].warmup == 0.5, "phase immobile mesurée après 0,5 s d'attente")
+
+-- #27 : objectif de textures au plus fort, mesurable sur tous les clients.
+local texLine
+for line in ns.db.lastBench and box.text:gmatch("[^\n]+") or function() end do
+	if line:find(ns.L.GOAL_TEXTURES:match("^[^:]+"), 1, true) then texLine = line end
+end
+check(texLine ~= nil, "objectif de textures au plus fort : « " .. tostring(texLine) .. " »")

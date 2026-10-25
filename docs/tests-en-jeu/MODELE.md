@@ -58,7 +58,8 @@ Commit testé :
 |---|---|---|
 | Images par seconde carte fermée / ouverte | | au plus 10 % de moins |
 | Temps de Strata par image en déplacement (moyenne / pire) | | sous 1 ms / 5 ms |
-| Mémoire Lua de l'addon après un tour d'Azeroth | | sous 2 Mo |
+| Textures chargées au plus fort | | sous 600 |
+| Mémoire Lua de l'addon après un tour d'Azeroth (si le client la donne) | | sous 2 Mo |
 
 - [ ] Objectifs tenus, ou écart expliqué et ticket ouvert
 - [ ] Aucune saccade visible à la première ouverture ni en déplacement

@@ -18,6 +18,9 @@ local GOAL_FPS_DROP = 0.10   -- images par seconde carte ouverte : au plus 10 % 
 local GOAL_PAN_AVG = 1       -- ms de Strata par image en déplacement, en moyenne
 local GOAL_PAN_WORST = 5     -- ms, pire image
 local GOAL_MEMORY = 2048     -- Ko de mémoire Lua après le parcours
+-- Textures chargées au plus fort : la vraie mémoire de Strata, et mesurable sur tous les clients
+-- (certains renvoient 0 pour la mémoire Lua d'un addon, #27).
+local GOAL_TEXTURES = 600
 
 local overlay, overlayText, results, resultsBox
 local bench
@@ -157,6 +160,9 @@ local function Report(r)
 	lines[#lines + 1] = format(L.GOAL_FPS, still.fps, closed.fps, -drop * 100, Verdict(drop <= GOAL_FPS_DROP))
 	lines[#lines + 1] = format(L.GOAL_PAN, pan.ms or 0, pan.worst or 0,
 		Verdict((pan.ms or 0) < GOAL_PAN_AVG and (pan.worst or 0) < GOAL_PAN_WORST))
+	local peak = 0
+	for _, p in ipairs(r.phases) do peak = math.max(peak, p.peak) end
+	lines[#lines + 1] = format(L.GOAL_TEXTURES, peak, Verdict(peak < GOAL_TEXTURES))
 	if measured then
 		lines[#lines + 1] = format(L.GOAL_MEMORY, r.memory, Verdict(r.memory < GOAL_MEMORY))
 	else
