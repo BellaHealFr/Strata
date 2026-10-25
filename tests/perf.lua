@@ -118,6 +118,28 @@ end)
 budget("recherche.ops par frappe", typing.ops / 7)
 StrataSearchBox.scripts.OnEscapePressed(StrataSearchBox)
 
+-- 6 d. Épingles (#2) : 200 épingles sur Azeroth. Un déplacement ne doit coûter aucun travail
+-- par épingle (elles sont sur le canevas) ; un zoom les redimensionne.
+ns.db.pins = {}
+for i = 1, 200 do
+	ns.db.pins[i] = { view = "azeroth", x = 5000 + (i % 20) * 1500, y = 6000 + math.floor(i / 20) * 2000, note = "", icon = 1 + i % 8 }
+end
+local render = measure(function() ns.view.Show("outland") ns.view.Show("azeroth") end)
+budget("200 épingles.affichage (changement de vue)", render.ops)
+mean = measureFrames(150)
+budget("200 épingles.immobile.ops par image", mean.ops)
+TEST.cursor = { 500, 400 }
+scroll.scripts.OnMouseDown(scroll, "LeftButton")
+mean = measureFrames(100, function(i) TEST.cursor = { 500 - 3 * i, 400 - i } end)
+scroll.scripts.OnMouseUp(scroll, "LeftButton")
+budget("200 épingles.déplacement.ops par image (moyenne)", mean.ops)
+budget("200 épingles.déplacement.SetPoint par image", mean.SetPoint)
+mean, peak = measureFrames(60, function(i) if i <= 3 then scroll.scripts.OnMouseWheel(scroll, 1) end end)
+budget("200 épingles.zoom.ops par image (moyenne)", mean.ops)
+ns.db.pins = {}
+ns.view.Show("outland") ns.view.Show("azeroth")
+tick(1)
+
 -- 6 bis. Compteur à l'écran : son coût quand il est affiché, et aucun coût une fois masqué.
 SlashCmdList.STRATA("debug")
 mean = measureFrames(150)
@@ -142,7 +164,7 @@ tick(0.5)
 check(loadedTextures(azeroth) > 100, "zones d'Azeroth chargées avant de changer de vue : " .. loadedTextures(azeroth))
 viewButton(ns.L.OUTLAND).scripts.OnClick()
 tick(1)
-budget("vue Outreterre.textures gardées pour Azeroth", loadedTextures(azeroth))
+budget("vue Outreterre.textures gardées pour Azeroth", loadedMapTiles(azeroth))
 viewButton(ns.L.AZEROTH).scripts.OnClick()
 tick(1)
 

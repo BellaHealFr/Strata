@@ -13,5 +13,6 @@ Data\Zones.lua
 Core.lua
 Map.lua
 Search.lua
+Pins.lua
 Bench.lua
 MinimapButton.lua

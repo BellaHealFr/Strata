@@ -151,6 +151,7 @@ strlower, format = string.lower, string.format
 strtrim = function(s) return (s:gsub("^%s+", ""):gsub("%s+$", "")) end
 wipe = function(t) for k in pairs(t) do t[k] = nil end return t end
 GetTime = function() return TEST.time end
+IsControlKeyDown = function() return TEST.ctrl end
 GetCursorPosition = function() return TEST.cursor[1], TEST.cursor[2] end
 GetLocale = function() return TEST.locale or "frFR" end
 GetPlayerFacing = function() return 1.0 end
