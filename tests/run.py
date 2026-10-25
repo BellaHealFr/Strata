@@ -25,7 +25,8 @@ SCENARIOS = ["scenario.lua", "perf.lua"]
 # Variables globales que l'addon a le droit de créer ; toute autre est une fuite.
 GLOBALS = ["Strata", "StrataDB", "StrataFrame", "Strata_Toggle", "SLASH_STRATA1", "SLASH_STRATA2",
            "BINDING_HEADER_STRATA", "BINDING_NAME_STRATA_TOGGLE",
-           "StrataBenchFrame"]  # nommé pour qu'Échap ferme les résultats du bench (UISpecialFrames)
+           "StrataBenchFrame",
+           "StrataMinimapButton"]  # nommé pour qu'Échap ferme les résultats du bench (UISpecialFrames)
 
 SETUP = """
     TEST.events = {}

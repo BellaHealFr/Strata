@@ -70,6 +70,7 @@ function Region:GetFrameLevel() return self.level end
 function Region:SetFrameLevel(l) self.level = l end
 function Region:GetLeft() return 100 end
 function Region:GetTop() return 900 end
+function Region:GetCenter() return self.cx or 0, self.cy or 0 end
 function Region:IsMouseOver() return TEST.mouseOver end
 function Region:GetPoint() return "CENTER", nil, "CENTER", 0, 0 end
 function Region:SetPoint(point, rel, relPoint, x, y)
@@ -120,6 +121,9 @@ end
 UIParent = NewRegion("Frame")
 UIParent.w, UIParent.h = 1920, 1080
 WorldMapFrame = NewRegion("Frame", UIParent)
+-- La minicarte : 140 px, centrée en (1000, 800) à l'écran.
+Minimap = NewRegion("Frame", UIParent)
+Minimap.w, Minimap.h, Minimap.cx, Minimap.cy = 140, 140, 1000, 800
 WorldMapFrame.shown = false
 DEFAULT_CHAT_FRAME = { AddMessage = function(_, msg) tinsert(TEST.prints, msg) end }
 UISpecialFrames = {}
