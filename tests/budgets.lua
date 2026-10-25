@@ -50,6 +50,13 @@ BUDGETS = {
 	-- Recherche (#1) [0.2] : construction de l'index comprise dans la première frappe.
 	["recherche.ops par frappe"] = 42,                  -- [33.4]
 
+	-- Épingles (#2) [0.2] : posées sur le canevas, un déplacement ne touche aucune épingle.
+	["200 épingles.affichage (changement de vue)"] = 1260, -- [1008]
+	["200 épingles.immobile.ops par image"] = 10,        -- [7.8] comme sans épingle
+	["200 épingles.déplacement.ops par image (moyenne)"] = 26, -- [20.3]
+	["200 épingles.déplacement.SetPoint par image"] = 2, -- [2] le canevas et la flèche, aucune épingle
+	["200 épingles.zoom.ops par image (moyenne)"] = 40,  -- [31.4] redimensionnées au zoom seulement
+
 	-- Compteur à l'écran (/strata debug). [0.2]
 	["compteur affiché.ops par image"] = 11,           -- [8.5]
 	["compteur affiché.UpdateAddOnMemoryUsage en 3 s"] = 2, -- [2] une lecture toutes les 2 s, pas plus

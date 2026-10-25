@@ -26,7 +26,8 @@ SCENARIOS = ["scenario.lua", "perf.lua"]
 GLOBALS = ["Strata", "StrataDB", "StrataFrame", "Strata_Toggle", "SLASH_STRATA1", "SLASH_STRATA2",
            "BINDING_HEADER_STRATA", "BINDING_NAME_STRATA_TOGGLE",
            "StrataBenchFrame",
-           "StrataMinimapButton", "StrataSearchBox"]  # nommé pour qu'Échap ferme les résultats du bench (UISpecialFrames)
+           "StrataMinimapButton", "StrataSearchBox",
+           "StrataPinCard", "StrataPinNote", "StrataPinList"]  # nommé pour qu'Échap ferme les résultats du bench (UISpecialFrames)
 
 SETUP = """
     TEST.events = {}

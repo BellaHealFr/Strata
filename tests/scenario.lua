@@ -306,3 +306,78 @@ type_("elw")
 box.scripts.OnEscapePressed(box)
 check(box.text == "" and not rowsShown()[1], "Échap vide le champ et ferme les résultats")
 Strata_Toggle()
+
+-- #2 : épingles
+TomTom = { calls = {} }
+function TomTom:AddZWaypoint(...) table.insert(self.calls, { ... }) return "uid" end
+if not StrataFrame:IsShown() then Strata_Toggle() end
+local function button(label)
+	return find(StrataFrame, function(r) return r.kind == "Button" and r.text == label end)
+end
+button(ns.L.ME).scripts.OnClick()
+tick(0.3)
+local pv, px, py = ns.UnitPos("player")
+TEST.cursor = { 100 + child.w / 2, 900 - child.h / 2 }
+TEST.ctrl = true
+scroll.scripts.OnMouseDown(scroll, "LeftButton")
+TEST.ctrl = nil
+local pin = ns.db.pins and ns.db.pins[1]
+check(pin and pin.view == "azeroth" and math.abs(pin.x - px) < 1 and math.abs(pin.y - py) < 1, "Ctrl-clic : épingle posée sous le curseur")
+check(StrataPinCard:IsVisible(), "Ctrl-clic : la fiche de l'épingle s'ouvre")
+local function pinButton(p)
+	return find(StrataFrame, function(r) return r.kind == "Button" and r.pin == p end)
+end
+local pb = pinButton(pin)
+local k = 1000 / ns.VIEWS.azeroth.size.w
+check(pb and pb:IsVisible() and math.abs(pb.point[2] - pin.x * k) < 1e-6 and math.abs(pb.point[3] + pin.y * k) < 1e-6, "épingle placée sur le canevas, au bon endroit")
+local _, zoom1 = ns.view.Get()
+check(math.abs(pb.w - 18 / zoom1) < 1e-6, "taille de l'épingle : 18 px à l'écran")
+StrataPinNote.text = "Mine de cuivre"
+StrataPinNote.scripts.OnTextChanged(StrataPinNote, true)
+check(pin.note == "Mine de cuivre", "note enregistrée")
+StrataPinCard.icons[3].scripts.OnClick(StrataPinCard.icons[3])
+check(pin.icon == 3 and pb.icon.path:sub(-2) == "_3" and ns.db.lastPinIcon == 3, "icône choisie (losange) et retenue pour la suivante")
+-- Zoom : la taille à l'écran ne change pas
+for _ = 1, 3 do scroll.scripts.OnMouseWheel(scroll, 1) end
+tick(1)
+local _, zoom2 = ns.view.Get()
+check(zoom2 > zoom1 and math.abs(pb.w - 18 / zoom2) < 1e-6, "après un zoom, toujours 18 px à l'écran")
+-- TomTom
+button(ns.L.PIN_TOMTOM).scripts.OnClick()
+local call = TomTom.calls[1]
+check(call and call[1] == 2 and call[2] == ns.maps[2].zones.Elwynn.index and math.abs(call[3] - 50) < 0.1 and math.abs(call[4] - 50) < 0.1,
+	format("TomTom : continent %s, zone %s, %.1f, %.1f", tostring(call and call[1]), tostring(call and call[2]), call and call[3] or -1, call and call[4] or -1))
+check(call[5] == "Mine de cuivre" and call[11] == true, "TomTom : la note comme titre, flèche demandée")
+-- Liste
+local listBtn = button(format(ns.L.PINS, 1))
+check(listBtn ~= nil, "bouton de la liste : « " .. format(ns.L.PINS, 1) .. " »")
+listBtn.scripts.OnClick()
+check(StrataPinList:IsVisible() and StrataPinList.rows[1].label.text == "Mine de cuivre", "liste : l'épingle y figure avec sa note")
+ns.view.Center(10, 10, 2)
+StrataPinList.rows[1].scripts.OnClick(StrataPinList.rows[1])
+local _, _, lcx, lcy = ns.view.Get()
+check(math.abs(lcx - pin.x * k) < 1e-6 and math.abs(lcy - pin.y * k) < 1e-6 and StrataPinCard:IsVisible(), "liste : un clic ramène la carte sur l'épingle")
+-- Une épingle en Outreterre ne s'affiche pas sur Azeroth
+button(ns.L.OUTLAND).scripts.OnClick()
+tick(0.2)
+TEST.ctrl = true
+scroll.scripts.OnMouseDown(scroll, "LeftButton")
+TEST.ctrl = nil
+local outPin = ns.db.pins[2]
+check(outPin.view == "outland" and pinButton(outPin):IsVisible(), "épingle posée en Outreterre")
+button(ns.L.AZEROTH).scripts.OnClick()
+tick(0.2)
+check(pinButton(pin):IsVisible() and not pinButton(outPin):IsVisible(), "vue Azeroth : seule l'épingle d'Azeroth s'affiche")
+-- Réouverture : les épingles reviennent
+Strata_Toggle() Strata_Toggle()
+tick(0.2)
+check(pinButton(pin):IsVisible(), "épingles toujours là après avoir fermé et rouvert la carte")
+-- Suppression
+ns.view.Center(pin.x * k, pin.y * k, 6)
+pinButton(pin).scripts.OnClick(pinButton(pin))
+button(ns.L.PIN_DELETE).scripts.OnClick()
+check(#ns.db.pins == 1 and ns.db.pins[1] == outPin and not StrataPinCard:IsVisible(), "suppression : l'épingle disparaît, la fiche se ferme")
+check(button(format(ns.L.PINS, 1)) ~= nil, "le bouton de la liste suit le compte")
+ns.db.pins = {}
+TomTom = nil
+Strata_Toggle()

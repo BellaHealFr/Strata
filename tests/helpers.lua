@@ -28,6 +28,17 @@ end
 function visibleTextures(region) return countTextures(region, true) end
 function loadedTextures(region) return countTextures(region, false) end
 
+-- Tuiles de carte chargées seulement (Interface\WorldMap\...) : sans les icônes (épingles,
+-- joueur), qui partagent quelques petits fichiers.
+function loadedMapTiles(region, n)
+	n = n or 0
+	if region.kind == "Texture" and type(region.path) == "string" and region.path:find("Interface\\WorldMap\\", 1, true) == 1 then
+		n = n + 1
+	end
+	for _, c in ipairs(region.children) do n = loadedMapTiles(c, n) end
+	return n
+end
+
 -- Une image : le temps avance de 20 ms et chaque cadre visible reçoit son OnUpdate.
 function frame()
 	TEST.time = TEST.time + 0.02
