@@ -107,6 +107,17 @@ mean = measureFrames(150)
 budget("survol.ops par image", mean.ops)
 TEST.mouseOver = nil
 
+-- 6 c. Recherche (#1) : le coût d'une frappe, en tapant « nagrand » lettre par lettre.
+local typing = measure(function()
+	local word = "nagrand"
+	for i = 1, #word do
+		StrataSearchBox.text = word:sub(1, i)
+		StrataSearchBox.scripts.OnTextChanged(StrataSearchBox, true)
+	end
+end)
+budget("recherche.ops par frappe", typing.ops / 7)
+StrataSearchBox.scripts.OnEscapePressed(StrataSearchBox)
+
 -- 6 bis. Compteur à l'écran : son coût quand il est affiché, et aucun coût une fois masqué.
 SlashCmdList.STRATA("debug")
 mean = measureFrames(150)

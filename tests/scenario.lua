@@ -49,7 +49,8 @@ check(TEST.textures < 5000, "textures créées au total : " .. TEST.textures)
 TEST.mouseOver = true
 for _ = 1, 25 do scroll.scripts.OnMouseWheel(scroll, 1) tick(0.1) end
 tick(0.5)
-local hover = find(StrataFrame, function(r) return r.kind == "FontString" and r.point and r.point[1] == "BOTTOMRIGHT" end)
+-- Le texte de survol, à droite de la barre de titre (premier texte ancré à droite).
+local hover = find(StrataFrame, function(r) return r.kind == "FontString" and r.point and r.point[1] == "RIGHT" end)
 print("     survol : " .. tostring(hover and hover.text))
 
 -- Déplacement à la souris
@@ -257,3 +258,51 @@ SlashCmdList.STRATA("bouton")
 check(not mb:IsShown() and ns.db.hideMinimapButton, "/strata bouton masque le bouton")
 SlashCmdList.STRATA("button")
 check(mb:IsShown() and not ns.db.hideMinimapButton, "/strata button le remet")
+
+-- #1 : recherche de zones et de villes
+if not StrataFrame:IsShown() then Strata_Toggle() end
+local box = StrataSearchBox
+local function type_(text)
+	box.text = text
+	box.scripts.OnTextChanged(box, true)
+end
+local function rowsShown()
+	local out = {}
+	for _, row in ipairs(find(StrataFrame, function(r) return r.kind == "Frame" and r.children[1] and r.children[1].kind == "Button" and r.children[1].name end).children) do
+		if row:IsVisible() then out[#out + 1] = row end
+	end
+	return out
+end
+-- Nom accentué, comme sur un client français
+ns.maps[2].zones.Elwynn.name = "Forêt d'Elwynn"
+type_("FORET d")
+local shown = rowsShown()
+check(#shown >= 1 and shown[1].name.text == "Forêt d'Elwynn", "« FORET d » trouve « Forêt d'Elwynn » (majuscules et accents ignorés)")
+check(shown[1].where.text == "Royaumes de l'Est", "continent indiqué : " .. tostring(shown[1].where.text))
+type_("elw")
+check(rowsShown()[1].name.text == "Forêt d'Elwynn" and rowsShown()[2].name.text == "Felwood",
+	"« elw » : Forêt d'Elwynn (début de mot) avant Felwood (milieu de mot)")
+type_("zzzz")
+shown = rowsShown()
+check(#shown == 1 and shown[1].zone == nil and shown[1].name.text:find(ns.L.SEARCH_NONE, 1, true), "aucun résultat annoncé")
+-- Les noms qui commencent par la recherche d'abord
+local found = ns.Search("st")
+check(found[1].plain:sub(1, 2) == "st", "les noms qui commencent par la recherche en premier : " .. found[1].name)
+-- Clic sur un résultat : la carte va sur la zone, à un zoom qui la fait tenir
+type_("elw")
+local target = rowsShown()[1].zone
+rowsShown()[1].scripts.OnClick(rowsShown()[1])
+local name, z, cx, cy = ns.view.Get()
+check(name == "azeroth" and math.abs(cx - (target.x + target.w / 2)) < 1e-6 and math.abs(cy - (target.y + target.h / 2)) < 1e-6, "clic : carte centrée sur la zone")
+local vw, vh = ns.view.Size()
+check(target.w * z <= vw and target.h * z <= vh and (target.w * z > vw * 0.8 or target.h * z > vh * 0.8), "la zone tient dans la fenêtre")
+check(box.text == "" and not rowsShown()[1], "résultats fermés et champ vidé après le choix")
+-- Entrée : premier résultat, et changement de vue vers l'Outreterre
+type_("nagr")
+box.scripts.OnEnterPressed(box)
+check(ns.view.Get() == "outland", "Entrée sur « nagr » : vue Outreterre, sur Nagrand")
+-- Échap : tout s'efface
+type_("elw")
+box.scripts.OnEscapePressed(box)
+check(box.text == "" and not rowsShown()[1], "Échap vide le champ et ferme les résultats")
+Strata_Toggle()
