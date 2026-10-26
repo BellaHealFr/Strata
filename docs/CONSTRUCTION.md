@@ -125,7 +125,9 @@ Une zone paraît quand sa largeur à l'écran dépasse 220 pixels, en fondu jusq
 
 **Ordre des zones.** Le fond d'une zone est un rectangle opaque qui déborde sur ses voisines. Le client 3.3.5 n'a pas de sous-niveau de dessin, et dans un même cadre l'ordre de textures réutilisées n'est pas garanti : `base` a donc un cadre par **profondeur**. Sur chaque continent, les zones sont prises des plus grandes aux plus petites, chacune un cran au-dessus des plus grandes qu'elle touche (7 crans au plus). Les morceaux découverts, transparents autour de leur forme, restent dans une seule couche `over`, au-dessus de tous les fonds.
 
-**Villes.** Comme dans OpenMap, la carte d'une ville ne paraît qu'une fois qu'elle remplit une part de la largeur de la vue (de 20 à 40 %, de 8 à 25 % pour Orgrimmar et les Pitons-du-Tonnerre, que leur zone ne dessine que floues). Avant, la zone autour dessine la ville. Le bord adouci d'OpenMap demande des textures masques, absentes de la 3.3.5.
+**Bord adouci.** Comme le masque « feather » d'OpenMap, sans masques (absents de la 3.3.5) : la colonne et la rangée de tuiles du bord d'un fond de zone ou de ville passent de l'opaque au transparent par les couleurs des sommets (`SetGradientAlpha`). Un coin demande les deux sens : il est découpé en 4 tranches verticales, chacune en dégradé vertical, à la transparence horizontale de son côté extérieur (paliers de 25 %). Le découpage (24 morceaux par carte) est calculé une fois (`GRID`). La transparence d'apparition de la zone est multipliée dans le dégradé. Les morceaux d'une même tuile partagent son fichier : `stats.files` compte les fichiers chargés (la mémoire), `stats.textures` les morceaux.
+
+**Villes.** Comme dans OpenMap, la carte d'une ville ne paraît qu'une fois qu'elle remplit une part de la largeur de la vue (de 20 à 40 %, de 8 à 25 % pour Orgrimmar et les Pitons-du-Tonnerre, que leur zone ne dessine que floues). Avant, la zone autour dessine la ville. Leur bord est adouci comme celui des zones (le bord rond d'OpenMap demande un masque).
 
 ## 7. Chargement et mémoire
 

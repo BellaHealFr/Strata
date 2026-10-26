@@ -3,11 +3,14 @@
 ## Non publié
 
 ### Corrections
+- **Bord des cartes de zone et de ville adouci**, comme dans OpenMap : la colonne et la rangée de tuiles du bord passent en fondu vers la transparence. Les rectangles des cartes ne laissent plus de ligne droite sur leurs voisines, et les ornements de cadre des coins (Norfendre) et le cadre de parchemin des villes (Dalaran) s'effacent.
+- Une petite zone demandée au-delà du zoom maximal (recherche de Dalaran) n'est plus décentrée.
 - **Joints entre les tuiles** : chaque tuile d'une carte est accrochée au bord de sa voisine, comme sur la carte de Blizzard, et ne lit plus le bord de la tuile d'à côté. Plus de fine ligne entre les morceaux d'une zone au zoom.
 - **Zones superposées** : le fond d'une zone passe toujours au-dessus des zones plus grandes qu'elle touche. Avant, l'ordre entre deux voisines n'était pas garanti et pouvait changer d'une ouverture à l'autre.
 - **Villes** : la carte d'une ville n'apparaît plus qu'une fois qu'elle remplit une part de la vue (un cinquième, plus tôt pour Orgrimmar et les Pitons-du-Tonnerre), comme dans OpenMap. Avant, son rectangle et ses alentours se posaient sur la zone dès qu'elle mesurait 90 pixels.
 
 ### Performances
+- Bord adouci : deux fois plus de morceaux par fond de zone, sans fichier de plus. Le chargement d'une zone coûte un peu plus de travail à l'image où elle paraît. Le bench compte maintenant les **fichiers** de textures chargés (la mémoire) : plusieurs morceaux d'une même tuile n'en chargent qu'un.
 - Ouverture un peu plus chère (cadres par profondeur de zones), sans effet mesurable en jeu ; textures chargées inchangées.
 
 ### Ajouts
