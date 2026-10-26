@@ -24,9 +24,21 @@ local function countTextures(region, onlyVisible, n)
 	return n
 end
 
--- Textures affichées, et textures qui ont un fichier chargé (affichées ou non) : la mémoire.
+-- Textures affichées.
 function visibleTextures(region) return countTextures(region, true) end
-function loadedTextures(region) return countTextures(region, false) end
+
+-- Fichiers chargés (textures affichées ou non) : la mémoire. Plusieurs morceaux d'une même tuile
+-- (bord adouci) partagent un fichier, que le client ne charge qu'une fois.
+function loadedTextures(region, seen)
+	seen = seen or {}
+	local n = 0
+	if region.kind == "Texture" and region.path and not seen[region.path] then
+		seen[region.path] = true
+		n = 1
+	end
+	for _, c in ipairs(region.children) do n = n + loadedTextures(c, seen) end
+	return n
+end
 
 -- Tuiles de carte chargées seulement (Interface\WorldMap\...) : sans les icônes (épingles,
 -- joueur), qui partagent quelques petits fichiers.

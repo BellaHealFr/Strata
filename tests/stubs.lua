@@ -87,6 +87,13 @@ function Region:SetPoint(point, rel, relPoint, x, y)
 end
 function Region:ClearAllPoints() self.point, self.allPoints = nil, nil end
 function Region:SetAllPoints(rel) self.allPoints = rel or self.parent end
+-- Dégradé de transparence (couleurs des sommets) : VERTICAL va du bas (min) vers le haut (max).
+function Region:SetGradientAlpha(orient, r1, g1, b1, a1, r2, g2, b2, a2)
+	count("SetGradientAlpha")
+	assert(orient == "HORIZONTAL" or orient == "VERTICAL", "SetGradientAlpha : orientation")
+	for _, v in ipairs({ a1, a2 }) do assert(type(v) == "number" and v >= 0 and v <= 1, "SetGradientAlpha : alpha invalide") end
+	self.gradient = { orient, a1, a2 }
+end
 function Region:SetTexCoord(...)
 	for i = 1, select("#", ...) do
 		local v = select(i, ...)

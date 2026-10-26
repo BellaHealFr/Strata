@@ -26,19 +26,22 @@ BUDGETS = {
 
 	-- Déplacement à la souris. [0.1.0]
 	["déplacement.ops par image (moyenne)"] = 91,      -- [72.7]
-	["déplacement.ops par image (pire)"] = 443,        -- [354] image où des zones se chargent
+	-- [0.2, #47] bord adouci : 24 morceaux par fond de zone au lieu de 12 (coins en tranches).
+	["déplacement.ops par image (pire)"] = 520,        -- [498] image où des zones se chargent
 	["déplacement.SetScale par image"] = 1,             -- [1] un seul cadre bougé, toujours
 
 	-- Zoom animé. [0.1.0]
-	["zoom.ops par image (moyenne)"] = 24,             -- [18.8]
-	["zoom.ops par image (pire)"] = 288,               -- [230]
+	-- [0.2, #47] bord adouci : 24 morceaux par fond de zone au lieu de 12 (coins en tranches).
+	["zoom.ops par image (moyenne)"] = 27,             -- [24.8]
+	["zoom.ops par image (pire)"] = 450,               -- [427]
 
 	-- Tour d'Azeroth : mémoire. [0.2, #22] 1 091 et 800 en 0.1.0 : textures des zones cachées
 	-- plafonnées (MAX_HIDDEN), rendues à la fermeture et au changement de vue.
 	["tour.textures chargées (pire moment)"] = 485,     -- [387]
 	-- [0.2, #45] 108 → 160 : une texture rendue ne sert plus qu'à une zone de même profondeur.
 	-- Objets vides réutilisés, pas des fichiers : les textures chargées ne bougent pas.
-	["tour.CreateTexture"] = 180,                       -- [160] textures réutilisées, pas recréées
+	-- [0.2, #47] bord adouci : 24 morceaux par fond de zone au lieu de 12 (coins en tranches).
+	["tour.CreateTexture"] = 310,                       -- [292] textures réutilisées, pas recréées
 	["tour.textures chargées après 20 s"] = 64,         -- [51] tout ce qui est hors vue est rendu
 
 	-- Raid de 40. [0.1.0]
