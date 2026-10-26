@@ -759,3 +759,80 @@ do
 	ns.Rebuild()
 	Strata_Toggle()
 end
+
+-- #53 : brouillard éteint, carte entière révélée (Data/Overlays.lua) ; bord du monde dans la mer
+do
+	-- Données : chaque zone existe et se dessine, chaque morceau tient dans sa carte.
+	local drawn, bad, count = {}, {}, 0
+	for c = 1, 4 do for file, Z in pairs(ns.Zones[c].zones) do if not Z[5] then drawn[file] = true end end end
+	for file, list in pairs(ns.Overlays) do
+		if not drawn[file] then bad[#bad + 1] = file end
+		for _, o in ipairs(list) do
+			count = count + 1
+			if type(o[1]) ~= "string" or o[2] <= 0 or o[3] <= 0 or o[4] < 0 or o[5] < 0
+				or o[4] + o[2] > 1024 or o[5] + o[3] > 768 then bad[#bad + 1] = file .. "." .. tostring(o[1]) end
+		end
+	end
+	check(count >= 800 and #bad == 0, format("%d morceaux de carte, zones et tailles valides %s", count, table.concat(bad, ", ")))
+
+	if not StrataFrame:IsShown() then Strata_Toggle() end
+	local k = 1000 / ns.VIEWS.azeroth.size.w
+	local _, ex, ey = ns.ToView(2, "Elwynn", 0.5, 0.5)
+	local function shown(pattern)
+		local n = 0
+		local function walk(r)
+			if r.kind == "Texture" and r:IsVisible() and type(r.path) == "string" and r.path:match(pattern) then n = n + 1 end
+			for _, ch in ipairs(r.children) do walk(ch) end
+		end
+		walk(StrataFrame)
+		return n
+	end
+	local function at(zoom)
+		ns.view.Center(ex * k, ey * k, zoom)
+		tick(0.3)
+	end
+	ns.Rebuild()
+	at(6)
+	check(shown("Elwynn\\NORTHSHIREVALLEY%d+$") == 0 and shown("Elwynn\\Piece%d+$") > 0,
+		"brouillard : seuls les morceaux découverts")
+	SlashCmdList.STRATA("brouillard")
+	tick(0.3)
+	check(ns.db.fog == false and shown("Elwynn\\NORTHSHIREVALLEY%d+$") > 0 and shown("Elwynn\\Piece%d+$") > 0
+		and shown("Elwynn\\Elwynn%d+$") > 0,
+		"brouillard éteint : carte révélée (morceaux non découverts en plus), fond des zones dessiné")
+	SlashCmdList.STRATA("brouillard")
+	tick(0.3)
+	check(ns.db.fog == true and shown("Elwynn\\NORTHSHIREVALLEY%d+$") == 0, "brouillard rallumé : morceaux non découverts retirés")
+
+	-- Bord du monde : la carte du monde se fond dans la mer, de la couleur de la sienne.
+	at(1)
+	local edgeBad, world = 0, 0
+	local function walk(r)
+		if r.kind == "Texture" and r:IsVisible() and r.cell and type(r.path) == "string" and r.path:match("World\\World%d+$") then
+			world = world + 1
+			local g, c = r.gradient, r.cell
+			local tl, tr, bl, br = 1, 1, 1, 1
+			if g and g[1] == "HORIZONTAL" then tl, tr, bl, br = g[2], g[3], g[2], g[3]
+			elseif g then tl, tr, bl, br = g[3], g[3], g[2], g[2] end
+			if (c[1] == 0 and (tl > 0 or bl > 0)) or (c[3] == 1002 and (tr > 0 or br > 0))
+				or (c[2] == 0 and (tl > 0 or tr > 0)) or (c[4] == 668 and (bl > 0 or br > 0)) then edgeBad = edgeBad + 1 end
+		end
+		for _, ch in ipairs(r.children) do walk(ch) end
+	end
+	walk(StrataFrame)
+	check(world == 24 and edgeBad == 0, "carte du monde : bord transparent sur tout le tour")
+	local function seaColor()
+		local found = find(StrataFrame, function(r) return r.kind == "Texture" and type(r.path) == "number" and r:IsVisible() end)
+		return found and found.path
+	end
+	local azeroth = seaColor()
+	button(L.OUTLAND).scripts.OnClick()
+	tick(0.3)
+	local outland = seaColor()
+	button(L.AZEROTH).scripts.OnClick()
+	tick(0.3)
+	check(azeroth and math.abs(azeroth - 0.545) < 0.01 and outland and math.abs(outland - 0.49) < 0.01,
+		format("mer autour de la carte, couleur de chaque vue (%s / %s)", tostring(azeroth), tostring(outland)))
+	ns.Rebuild()
+	Strata_Toggle()
+end
