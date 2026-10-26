@@ -187,22 +187,35 @@ for _, feather in ipairs({ false, true }) do
 	GRID[feather and "feather" or "plain"] = cells
 end
 
--- Les 12 tuiles d'une carte (prefix1 .. prefix12) sur un rectangle en unités ; feather : bord
--- adouci. Chaque morceau garde sa place sur la carte (tex.cell, en px) et son dégradé (tex.fade).
-local function AddMapTiles(list, layer, prefix, rx, ry, rw, rh, feather)
-	local sx, sy = rw / MAP_W, rh / MAP_H
-	local left, rowStart
-	for _, cell in ipairs(feather and GRID.feather or GRID.plain) do
+-- Pose des morceaux précalculés (cells) au coin (x, y) d'une couche, sx, sy unités par px de la
+-- carte. Chaque morceau garde sa place (tex.cell, en px) et son dégradé (tex.fade).
+-- Les morceaux sont rangés par rangées, de gauche à droite ; un morceau entièrement transparent
+-- n'est pas créé. Chacun s'accroche à son voisin de gauche s'il le touche, sinon (début de rangée)
+-- au premier morceau de la rangée du dessus s'il est juste au-dessus, sinon il est placé seul.
+local function AddCells(list, layer, cells, prefix, x, y, sx, sy)
+	local left, rowFirst, aboveFirst
+	for _, cell in ipairs(cells) do
+		if not left or left.cell[2] ~= cell[2] then
+			aboveFirst, rowFirst, left = rowFirst, nil, nil
+		end
+		local l = left and left.cell[3] == cell[1] and left or nil
+		local a = not l and not rowFirst and aboveFirst and aboveFirst.cell[1] == cell[1]
+			and aboveFirst.cell[4] == cell[2] and aboveFirst or nil
 		local tex = Acquire(layer)
-		if cell.rowStart then left = nil end
-		PlaceTile(tex, layer, left, not left and rowStart, rx, ry, (cell[3] - cell[1]) * sx, (cell[4] - cell[2]) * sy,
+		PlaceTile(tex, layer, l, a, x + cell[1] * sx, y + cell[2] * sy, (cell[3] - cell[1]) * sx, (cell[4] - cell[2]) * sy,
 			cell.u0, cell.u1, cell.v0, cell.v1)
-		if cell.rowStart then rowStart = tex end
+		rowFirst = rowFirst or tex
 		tex.cell, tex.fade = cell, cell.fade
 		SetFile(tex, prefix .. cell.tile)
 		list[#list + 1] = tex
 		left = tex
 	end
+end
+
+-- Les 12 tuiles d'une carte (prefix1 .. prefix12) sur un rectangle en unités ; feather : bord
+-- adouci.
+local function AddMapTiles(list, layer, prefix, rx, ry, rw, rh, feather)
+	AddCells(list, layer, feather and GRID.feather or GRID.plain, prefix, rx, ry, rw / MAP_W, rh / MAP_H)
 end
 
 -- La taille du fichier d'une tuile de bord : la puissance de 2 qui la contient (WorldMapFrame_Update).
@@ -212,36 +225,127 @@ local function FileSize(px)
 	return size
 end
 
--- Les morceaux découverts d'une zone, découpés en tuiles de 256 px comme Blizzard.
-local function AddOverlays(list, layer, overlays, rx, ry, rw, rh)
-	local sx, sy = rw / MAP_W, rh / MAP_H
-	for _, o in ipairs(overlays) do
-		local name, tw, th, offX, offY = o[1], o[2], o[3], o[4], o[5]
-		local wide, tall = ceil(tw / 256), ceil(th / 256)
-		local first = #list
-		for j = 1, tall do
-			local ph, fh = 256, 256
-			if j == tall then
-				ph = th % 256
-				if ph == 0 then ph = 256 end
-				fh = FileSize(ph)
-			end
-			for k = 1, wide do
-				local pw, fw = 256, 256
-				if k == wide then
-					pw = tw % 256
-					if pw == 0 then pw = 256 end
-					fw = FileSize(pw)
-				end
-				local tex = Acquire(layer)
-				local n = (j - 1) * wide + k
-				PlaceTile(tex, layer, k > 1 and list[first + n - 1], j > 1 and list[first + n - wide],
-					rx + offX * sx, ry + offY * sy, pw * sx, ph * sy,
-					0.5 / fw, (pw - 0.5) / fw, 0.5 / fh, (ph - 0.5) / fh)
-				SetFile(tex, name .. n)
-				list[#list + 1] = tex
-			end
+-- Morceaux découverts. Blizzard les dessine sur le fond de leur zone : ce sont des rectangles
+-- opaques qui débordent un peu de ce qu'ils peignent. Posés sur une zone voisine ou sur la carte
+-- du continent (brouillard éteint), leurs bords font des lignes droites. Comme OpenMap (« a thin
+-- feather at the art's edge »), un bord fin adouci sur chaque côté qu'aucun autre morceau de la
+-- même zone ne prolonge : l'intérieur d'une zone découverte ne gagne pas de couture.
+local OVERLAY_BAND = 32          -- px de la carte : largeur du bord adouci
+local OVERLAY_COVER = 0.6        -- part d'un côté prolongée par les autres morceaux : côté fermé
+
+-- Les côtés ouverts du morceau i : { left, right, top, bottom }, vrai si à adoucir.
+function ns.OverlaySides(overlays, i)
+	local o = overlays[i]
+	local x0, y0, x1, y1 = o[4], o[5], o[4] + o[2], o[5] + o[3]
+	local top, bottom, left, right = 0, 0, 0, 0
+	for j, q in ipairs(overlays) do
+		if j ~= i then
+			local qx0, qy0, qx1, qy1 = q[4], q[5], q[4] + q[2], q[5] + q[3]
+			local hx = max(0, min(x1, qx1) - max(x0, qx0))
+			local vy = max(0, min(y1, qy1) - max(y0, qy0))
+			if qy0 <= y0 - OVERLAY_BAND and qy1 > y0 then top = top + hx end
+			if qy1 >= y1 + OVERLAY_BAND and qy0 < y1 then bottom = bottom + hx end
+			if qx0 <= x0 - OVERLAY_BAND and qx1 > x0 then left = left + vy end
+			if qx1 >= x1 + OVERLAY_BAND and qx0 < x1 then right = right + vy end
 		end
+	end
+	local w, h = x1 - x0, y1 - y0
+	return {
+		left = left < OVERLAY_COVER * h, right = right < OVERLAY_COVER * h,
+		top = top < OVERLAY_COVER * w, bottom = bottom < OVERLAY_COVER * w,
+	}
+end
+
+-- La taille du fichier d'une tuile de bord : la puissance de 2 qui la contient (WorldMapFrame_Update).
+local function FileSize(px)
+	local size = 16
+	while size < px do size = size * 2 end
+	return size
+end
+
+local function SortUnique(t)
+	sort(t)
+	local out = {}
+	for _, v in ipairs(t) do
+		if not out[1] or v - out[#out] > 1e-6 then out[#out + 1] = v end
+	end
+	return out
+end
+
+-- Le découpage d'un morceau tw x th (tuiles de 256 px comme Blizzard, fichiers de bord en
+-- puissance de 2), avec un bord adouci sur ses côtés ouverts. Un coin (deux côtés ouverts) est
+-- coupé en deux tranches, en dégradé vertical à la transparence horizontale de son côté extérieur.
+local function PieceCells(tw, th, sides)
+	local wide, tall = ceil(tw / 256), ceil(th / 256)
+	local bx, by = min(OVERLAY_BAND, tw / 3), min(OVERLAY_BAND, th / 3)
+	local xs, ys = { 0, tw }, { 0, th }
+	for k = 1, wide - 1 do xs[#xs + 1] = 256 * k end
+	for j = 1, tall - 1 do ys[#ys + 1] = 256 * j end
+	if sides.left then xs[#xs + 1], xs[#xs + 2] = bx / 2, bx end
+	if sides.right then xs[#xs + 1], xs[#xs + 2] = tw - bx / 2, tw - bx end
+	if sides.top then ys[#ys + 1] = by end
+	if sides.bottom then ys[#ys + 1] = th - by end
+	xs, ys = SortUnique(xs), SortUnique(ys)
+	local function FX(x)
+		local a = 1
+		if sides.left then a = min(a, x / bx) end
+		if sides.right then a = min(a, (tw - x) / bx) end
+		return a
+	end
+	local function FY(y)
+		local a = 1
+		if sides.top then a = min(a, y / by) end
+		if sides.bottom then a = min(a, (th - y) / by) end
+		return a
+	end
+	local cells = {}
+	for r = 1, #ys - 1 do
+		local y0, y1 = ys[r], ys[r + 1]
+		local j = floor(y0 / 256) + 1
+		local ty = 256 * (j - 1)
+		local ph = min(256, th - ty)
+		local fh = j < tall and 256 or FileSize(ph)
+		local inY = (sides.top and y1 <= by + 1e-6) or (sides.bottom and y0 >= th - by - 1e-6)
+		for c = 1, #xs - 1 do
+			local x0, x1 = xs[c], xs[c + 1]
+			local k = floor(x0 / 256) + 1
+			local tx = 256 * (k - 1)
+			local pw = min(256, tw - tx)
+			local fw = k < wide and 256 or FileSize(pw)
+			local inLeft = sides.left and x1 <= bx + 1e-6
+			local inX = inLeft or (sides.right and x0 >= tw - bx - 1e-6)
+			local fade
+			if inX and inY then
+				local f = inLeft and FX(x0) or FX(x1)
+				fade = { "VERTICAL", f * FY(y1), f * FY(y0) }
+			elseif inX then
+				fade = { "HORIZONTAL", FX(x0), FX(x1) }
+			elseif inY then
+				fade = { "VERTICAL", FY(y1), FY(y0) }
+			end
+			if not (fade and fade[2] == 0 and fade[3] == 0) then cells[#cells + 1] = {
+				x0, y0, x1, y1,
+				tile = (j - 1) * wide + k,
+				u0 = (x0 - tx + (x0 == tx and 0.5 or 0)) / fw, u1 = (x1 - tx - (x1 == tx + pw and 0.5 or 0)) / fw,
+				v0 = (y0 - ty + (y0 == ty and 0.5 or 0)) / fh, v1 = (y1 - ty - (y1 == ty + ph and 0.5 or 0)) / fh,
+				fade = fade,
+			} end
+		end
+	end
+	return cells
+end
+
+-- Les morceaux découverts d'une zone. Leur découpage ne dépend que de la zone : calculé à son
+-- premier chargement (info.cells).
+local function AddOverlays(list, layer, info, rx, ry, rw, rh)
+	local sx, sy = rw / MAP_W, rh / MAP_H
+	local overlays = info.overlays
+	if not info.cells then
+		info.cells = {}
+		for i, o in ipairs(overlays) do info.cells[i] = PieceCells(o[2], o[3], ns.OverlaySides(overlays, i)) end
+	end
+	for i, o in ipairs(overlays) do
+		AddCells(list, layer, info.cells[i], o[1], rx + o[4] * sx, ry + o[5] * sy, sx, sy)
 	end
 end
 
@@ -353,8 +457,10 @@ local function BuildCanvas(name)
 		local map = ns.maps[cont]
 		if map and map.file then
 			local tiles = {}
+			-- (bord adouci, comme OpenMap : le cadre ornementé et la mer du continent se fondent
+			-- dans la carte du monde)
 			AddMapTiles(tiles, c.layers.cont, "Interface\\WorldMap\\" .. map.file .. "\\" .. map.file,
-				bx * k, by * k, C.w * k, C.h * k)
+				bx * k, by * k, C.w * k, C.h * k, true)
 			ShowAll(tiles, false)
 			c.conts[cont] = tiles
 		end
@@ -367,7 +473,7 @@ local function LoadZone(e)
 	e.base = {}
 	AddMapTiles(e.base, e.city and L.city or L.base[e.depth], e.info.prefix, e.x, e.y, e.w, e.h, true)
 	e.over = {}
-	AddOverlays(e.over, L.over, e.info.overlays, e.x, e.y, e.w, e.h)
+	AddOverlays(e.over, L.over, e.info, e.x, e.y, e.w, e.h)
 	e.loaded, e.alpha = true, nil
 	stats.zones = stats.zones + 1
 end
@@ -497,7 +603,7 @@ local function UpdateLayers()
 			ShowAll(e.over, true)
 			if e.alpha ~= alpha then
 				SetFadeAll(e.base, alpha)
-				SetAlphaAll(e.over, alpha)
+				SetFadeAll(e.over, alpha)
 				e.alpha = alpha
 			end
 		elseif e.loaded and not e.hiddenAt then
@@ -528,7 +634,12 @@ local function UpdateLayers()
 	for cont, tiles in pairs(V.conts) do
 		local show = cont == active and contAlpha > 0
 		ShowAll(tiles, show)
-		if show then SetAlphaAll(tiles, contAlpha) end
+		if show and tiles.alpha ~= contAlpha then
+			SetFadeAll(tiles, contAlpha)
+			tiles.alpha = contAlpha
+		elseif not show then
+			tiles.alpha = nil
+		end
 	end
 	dirty = false
 end
