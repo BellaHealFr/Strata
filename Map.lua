@@ -6,10 +6,11 @@
 --
 -- Chaque vue a un canevas de UNITS unités de large (1 unité = 1/k yard). Le canevas est mis à
 -- l'échelle (zoom) et placé dans un ScrollFrame qui le rogne. Couches, de bas en haut :
---   world : la carte du monde de Blizzard (vue Azeroth)
+--   world : la carte du monde de Blizzard (vue Azeroth), bord adouci dans la mer de la fenêtre
 --   cont  : la carte du continent sous le centre de la vue, en fondu avec le zoom
 --   base  : le fond de chaque zone (12 tuiles, comme WorldMapDetailFrame : 1002 x 668 px)
---   over  : les morceaux découverts de chaque zone (GetMapOverlayInfo)
+--   over  : les morceaux découverts de chaque zone (GetMapOverlayInfo) ; brouillard éteint, tous
+--           ses morceaux (Data/Overlays.lua) : la carte est révélée
 --   city  : les villes, entièrement peintes, au-dessus de leurs voisines, une fois qu'elles
 --           remplissent une part de la vue (comme OpenMap : avant, la zone autour les dessine)
 --   Les fonds de zone et de ville ont un bord adouci (dégradé de transparence) : leurs rectangles
@@ -45,7 +46,11 @@ local RELEASE_AFTER = 8                    -- secondes hors de la vue avant de r
 local MAX_HIDDEN = 160                     -- textures de zones cachées gardées au plus (les plus
                                            -- anciennes rendues d'abord) : borne le pic en déplacement
 
-local frame, scroll, child, pins, hoverText, playerText, viewButton, fogButton
+local frame, scroll, child, pins, hoverText, playerText, viewButton, fogButton, sea
+
+-- La mer autour de la carte, de la couleur de celle de la carte (mesurée sur World et Expansion01),
+-- comme OpenMap qui prolonge la mer au-delà du bord du monde.
+local SEA = { azeroth = { 0.545, 0.455, 0.259 }, outland = { 0.490, 0.431, 0.318 } }
 local canvases = {}
 local V                       -- le canevas affiché
 local zoom, ox, oy = 1, 0, 0  -- échelle, et position à l'écran (px, y vers le bas) de l'origine
@@ -319,20 +324,40 @@ local function PieceCells(tw, th, sides, band)
 	return cells
 end
 
--- Les morceaux découverts d'une zone. Leur découpage est calculé une fois par liste de morceaux
--- (info.cellsFor) : une découverte remplace la liste, et le découpage est refait.
-local function AddOverlays(list, layer, info, rx, ry, rw, rh)
+-- Brouillard éteint : tous les morceaux de la zone (Data/Overlays.lua) en plus des découverts, comme
+-- le « fog clear » de Mapster. Fusionnés par nom, une fois par liste de découverts (une découverte
+-- remplace la liste).
+local function Revealed(info)
+	local all = ns.Overlays[info.file]
+	if not all then return info.overlays end
+	if info.revealFor ~= info.overlays then
+		local list, seen = {}, {}
+		for _, o in ipairs(info.overlays) do
+			list[#list + 1] = o
+			seen[strlower(o[1]:match("[^\\]+$"))] = true
+		end
+		local dir = "Interface\\WorldMap\\" .. info.file .. "\\"
+		for _, o in ipairs(all) do
+			if not seen[strlower(o[1])] then list[#list + 1] = { dir .. o[1], o[2], o[3], o[4], o[5] } end
+		end
+		info.reveal, info.revealFor = list, info.overlays
+	end
+	return info.reveal
+end
+
+-- Les morceaux d'une zone (overlays : découverts, ou tous). Leur découpage est calculé une fois
+-- par liste et gardé sur elle (overlays.cells) : une découverte donne une nouvelle liste.
+local function AddOverlays(list, layer, overlays, c, rx, ry, rw, rh)
 	local sx, sy = rw / MAP_W, rh / MAP_H
-	local overlays = info.overlays
-	if info.cellsFor ~= overlays then
-		info.cells, info.cellsFor = {}, overlays
+	if not overlays.cells then
+		overlays.cells = {}
 		for i, o in ipairs(overlays) do
-			local sides, band = ns.FrameBand(o, info.c)
-			info.cells[i] = PieceCells(o[2], o[3], sides, band)
+			local sides, band = ns.FrameBand(o, c)
+			overlays.cells[i] = PieceCells(o[2], o[3], sides, band)
 		end
 	end
 	for i, o in ipairs(overlays) do
-		AddCells(list, layer, info.cells[i], o[1], rx + o[4] * sx, ry + o[5] * sy, sx, sy)
+		AddCells(list, layer, overlays.cells[i], o[1], rx + o[4] * sx, ry + o[5] * sy, sx, sy)
 	end
 end
 
@@ -434,7 +459,8 @@ local function BuildCanvas(name)
 	if view.world then
 		c.world = {}
 		AddMapTiles(c.world, c.layers.world, "Interface\\WorldMap\\" .. view.world .. "\\" .. view.world,
-			0, 0, c.w, c.h)
+			0, 0, c.w, c.h, true)
+		SetFadeAll(c.world, 1)
 	end
 
 	for _, cont in ipairs(view.continents) do
@@ -466,7 +492,8 @@ local function LoadZone(e)
 		AddMapTiles(e.base, L.base[e.depth], e.info.prefix, e.x, e.y, e.w, e.h, true)
 	end
 	e.over = {}
-	AddOverlays(e.over, L.over, e.info, e.x, e.y, e.w, e.h)
+	e.reveal = not ns.db.fog
+	AddOverlays(e.over, L.over, e.reveal and Revealed(e.info) or e.info.overlays, e.info.c, e.x, e.y, e.w, e.h)
 	e.loaded, e.alpha = true, nil
 	stats.zones = stats.zones + 1
 end
@@ -576,7 +603,7 @@ local function UpdateLayers()
 	local x0, y0 = -ox / zoom, -oy / zoom
 	local x1, y1 = x0 + vw / zoom, y0 + vh / zoom
 	local now = GetTime()
-	local fog = ns.db.fog
+	local reveal = not ns.db.fog
 
 	for _, e in ipairs(V.zones) do
 		local px = e.w * zoom
@@ -589,10 +616,12 @@ local function UpdateLayers()
 		end
 		local visible = alpha > 0 and e.x < x1 and e.x + e.w > x0 and e.y < y1 and e.y + e.h > y0
 		if visible then
+			-- (brouillard changé : la zone n'a pas les bons morceaux)
+			if e.loaded and e.reveal ~= reveal then UnloadZone(e) end
 			if not e.loaded then LoadZone(e) end
 			if e.hiddenAt then hidden = hidden - ZoneTextures(e) end
 			e.hiddenAt = nil
-			ShowAll(e.base, fog or e.city)
+			ShowAll(e.base, true)
 			ShowAll(e.over, true)
 			if e.alpha ~= alpha then
 				SetFadeAll(e.base, alpha)
@@ -764,6 +793,7 @@ local function ShowView(name, centerOnPlayer)
 	end
 	canvases[name] = canvases[name] or BuildCanvas(name)
 	V = canvases[name]
+	sea:SetTexture(SEA[name][1], SEA[name][2], SEA[name][3], 1)
 	V.frame:Show()
 	if ns.OnCanvas then ns.OnCanvas(V) end
 
@@ -941,9 +971,9 @@ local function CreateWindow()
 	child:SetWidth(1)
 	child:SetHeight(1)
 	scroll:SetScrollChild(child)
-	local sea = child:CreateTexture(nil, "BACKGROUND")
+	sea = child:CreateTexture(nil, "BACKGROUND")
 	sea:SetAllPoints(child)
-	sea:SetTexture(0.07, 0.12, 0.16, 1)
+	sea:SetTexture(SEA.azeroth[1], SEA.azeroth[2], SEA.azeroth[3], 1)
 
 	pins = CreateFrame("Frame", nil, child)
 	pins:SetAllPoints(child)

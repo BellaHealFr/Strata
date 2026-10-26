@@ -47,7 +47,7 @@ Il a été écrit pour le client 3.3.5, pas adapté d'une autre version du jeu. 
 ### La carte
 - **Zoom à la molette**, animé, à l'endroit du curseur. **Déplacement** au clic gauche glissé, **dézoom** au clic droit.
 - **Des couches qui apparaissent avec le zoom** : la carte du monde, puis celle du continent que vous regardez, puis chaque zone avec vos zones découvertes, et enfin les villes, entièrement peintes.
-- **Brouillard** : le bouton *Brouillard* affiche ou masque le fond des zones non découvertes.
+- **Brouillard** : avec le bouton *Brouillard*, les parties non découvertes restent dans le brouillard, comme sur la carte de Blizzard ; sans, la carte entière est révélée.
 
 ### Vous et votre groupe
 - **Votre position**, avec une flèche orientée dans la direction où vous regardez. Le bouton *Moi* recentre la carte sur vous.
@@ -93,7 +93,7 @@ Aucune modification n'entre sans vérification automatique, budgets de performan
 | Commande | Effet |
 |---|---|
 | `/strata` ou `/str` | ouvrir ou fermer la carte |
-| `/strata brouillard` | afficher ou masquer le fond des zones |
+| `/strata brouillard` | brouillard sur les parties non découvertes, ou carte entière révélée |
 | `/strata scan` | relire les cartes du client |
 | `/strata reset` | remettre la fenêtre et les vues à zéro |
 | `/strata plein` | plein écran ou fenêtre |
