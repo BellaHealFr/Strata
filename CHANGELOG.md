@@ -3,7 +3,9 @@
 ## Non publié
 
 ### Corrections
-- **Bord adouci des morceaux découverts et des cartes de continent**, comme dans OpenMap. Brouillard éteint, on ne voyait que les morceaux découverts des zones, des rectangles qui débordent un peu de ce qu'ils peignent, posés sur la carte du continent, elle-même un rectangle posé sur la carte du monde. Leurs bords faisaient des lignes droites, et les cadres ornementés des continents (Norfendre, Kalimdor) se voyaient en entier. Chaque morceau a maintenant un bord fin adouci sur les côtés qu'aucun autre morceau de sa zone ne prolonge (l'intérieur d'une zone ne gagne pas de couture), et chaque carte de continent un bord large.
+- **Cadre des cartes de zone effacé** : les morceaux découverts ont déjà des bords fondus chez Blizzard, sauf là où ils touchent le bord de la carte de leur zone, où ils portent un bout de son cadre (bord de parchemin déchiré et son ombre ; au Norfendre, gros ornements dans les coins). Ce sont ces côtés-là, et eux seuls, qui ont maintenant un bord adouci, plus large dans les coins des cartes du Norfendre. Les cartes de continent ont un bord large adouci : leur cadre ornementé se fond dans la carte du monde.
+- **Villes** : un bord adouci fin, qui ne touche plus les noms (Dalaran).
+- Une zone qui vient d'être découverte a de nouveau le bon découpage de ses morceaux.
 - **Bord des cartes de zone et de ville adouci**, comme dans OpenMap : la colonne et la rangée de tuiles du bord passent en fondu vers la transparence. Les rectangles des cartes ne laissent plus de ligne droite sur leurs voisines, et les ornements de cadre des coins (Norfendre) et le cadre de parchemin des villes (Dalaran) s'effacent.
 - Une petite zone demandée au-delà du zoom maximal (recherche de Dalaran) n'est plus décentrée.
 - **Joints entre les tuiles** : chaque tuile d'une carte est accrochée au bord de sa voisine, comme sur la carte de Blizzard, et ne lit plus le bord de la tuile d'à côté. Plus de fine ligne entre les morceaux d'une zone au zoom.
@@ -11,7 +13,7 @@
 - **Villes** : la carte d'une ville n'apparaît plus qu'une fois qu'elle remplit une part de la vue (un cinquième, plus tôt pour Orgrimmar et les Pitons-du-Tonnerre), comme dans OpenMap. Avant, son rectangle et ses alentours se posaient sur la zone dès qu'elle mesurait 90 pixels.
 
 ### Performances
-- Bords adoucis des morceaux et des continents : plus de pièces à poser quand une zone paraît (de l'ordre de 0,4 ms au pire, d'après le bench en jeu). Aucun fichier de plus.
+- Bords adoucis des morceaux (côtés au bord de la carte de la zone seulement) et des continents : quelques pièces de plus quand une zone paraît, aucun fichier de plus.
 - Bord adouci : deux fois plus de morceaux par fond de zone, sans fichier de plus. Le chargement d'une zone coûte un peu plus de travail à l'image où elle paraît. Le bench compte maintenant les **fichiers** de textures chargés (la mémoire) : plusieurs morceaux d'une même tuile n'en chargent qu'un.
 - Ouverture un peu plus chère (cadres par profondeur de zones), sans effet mesurable en jeu ; textures chargées inchangées.
 

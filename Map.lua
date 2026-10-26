@@ -218,42 +218,25 @@ local function AddMapTiles(list, layer, prefix, rx, ry, rw, rh, feather)
 	AddCells(list, layer, feather and GRID.feather or GRID.plain, prefix, rx, ry, rw / MAP_W, rh / MAP_H)
 end
 
--- La taille du fichier d'une tuile de bord : la puissance de 2 qui la contient (WorldMapFrame_Update).
-local function FileSize(px)
-	local size = 16
-	while size < px do size = size * 2 end
-	return size
-end
+-- Morceaux découverts. Ils ont leur propre transparence (bords fondus par Blizzard), sauf là où
+-- ils touchent le bord de la carte de leur zone : ils y portent un bout du cadre de la carte (bord
+-- de parchemin déchiré et son ombre ; au Norfendre, de gros ornements dans les coins). Dans une
+-- carte assemblée, ce cadre tombe au milieu du monde. Comme OpenMap (« a thin feather at the
+-- art's edge »), ces côtés-là seulement ont un bord adouci.
+local FRAME_TOLERANCE = 2        -- px de la carte : un morceau à moins de 2 px du bord le touche
+local FRAME_BAND = 32            -- px : le bord déchiré et son ombre
+local CORNER_BAND = 128          -- px : un morceau dans un coin d'une carte du Norfendre (ornements)
+local CITY_BAND = 48             -- px : le cadre de parchemin d'une ville, sans toucher ses noms
 
--- Morceaux découverts. Blizzard les dessine sur le fond de leur zone : ce sont des rectangles
--- opaques qui débordent un peu de ce qu'ils peignent. Posés sur une zone voisine ou sur la carte
--- du continent (brouillard éteint), leurs bords font des lignes droites. Comme OpenMap (« a thin
--- feather at the art's edge »), un bord fin adouci sur chaque côté qu'aucun autre morceau de la
--- même zone ne prolonge : l'intérieur d'une zone découverte ne gagne pas de couture.
-local OVERLAY_BAND = 32          -- px de la carte : largeur du bord adouci
-local OVERLAY_COVER = 0.6        -- part d'un côté prolongée par les autres morceaux : côté fermé
-
--- Les côtés ouverts du morceau i : { left, right, top, bottom }, vrai si à adoucir.
-function ns.OverlaySides(overlays, i)
-	local o = overlays[i]
+-- Les côtés d'un morceau qui touchent le cadre de la carte, et la largeur du bord adouci.
+function ns.FrameBand(o, c)
 	local x0, y0, x1, y1 = o[4], o[5], o[4] + o[2], o[5] + o[3]
-	local top, bottom, left, right = 0, 0, 0, 0
-	for j, q in ipairs(overlays) do
-		if j ~= i then
-			local qx0, qy0, qx1, qy1 = q[4], q[5], q[4] + q[2], q[5] + q[3]
-			local hx = max(0, min(x1, qx1) - max(x0, qx0))
-			local vy = max(0, min(y1, qy1) - max(y0, qy0))
-			if qy0 <= y0 - OVERLAY_BAND and qy1 > y0 then top = top + hx end
-			if qy1 >= y1 + OVERLAY_BAND and qy0 < y1 then bottom = bottom + hx end
-			if qx0 <= x0 - OVERLAY_BAND and qx1 > x0 then left = left + vy end
-			if qx1 >= x1 + OVERLAY_BAND and qx0 < x1 then right = right + vy end
-		end
-	end
-	local w, h = x1 - x0, y1 - y0
-	return {
-		left = left < OVERLAY_COVER * h, right = right < OVERLAY_COVER * h,
-		top = top < OVERLAY_COVER * w, bottom = bottom < OVERLAY_COVER * w,
+	local sides = {
+		left = x0 <= FRAME_TOLERANCE, top = y0 <= FRAME_TOLERANCE,
+		right = x1 >= MAP_W - FRAME_TOLERANCE, bottom = y1 >= MAP_H - FRAME_TOLERANCE,
 	}
+	local corner = (sides.left or sides.right) and (sides.top or sides.bottom)
+	return sides, (corner and c == 4) and CORNER_BAND or FRAME_BAND
 end
 
 -- La taille du fichier d'une tuile de bord : la puissance de 2 qui la contient (WorldMapFrame_Update).
@@ -273,11 +256,12 @@ local function SortUnique(t)
 end
 
 -- Le découpage d'un morceau tw x th (tuiles de 256 px comme Blizzard, fichiers de bord en
--- puissance de 2), avec un bord adouci sur ses côtés ouverts. Un coin (deux côtés ouverts) est
--- coupé en deux tranches, en dégradé vertical à la transparence horizontale de son côté extérieur.
-local function PieceCells(tw, th, sides)
+-- puissance de 2), avec un bord adouci de band px sur les côtés demandés (sides). Un coin (deux
+-- côtés) est coupé en deux tranches, en dégradé vertical à la transparence horizontale de son
+-- côté extérieur ; une pièce entièrement transparente n'est pas créée.
+local function PieceCells(tw, th, sides, band)
 	local wide, tall = ceil(tw / 256), ceil(th / 256)
-	local bx, by = min(OVERLAY_BAND, tw / 3), min(OVERLAY_BAND, th / 3)
+	local bx, by = min(band, tw / 3), min(band, th / 3)
 	local xs, ys = { 0, tw }, { 0, th }
 	for k = 1, wide - 1 do xs[#xs + 1] = 256 * k end
 	for j = 1, tall - 1 do ys[#ys + 1] = 256 * j end
@@ -335,14 +319,17 @@ local function PieceCells(tw, th, sides)
 	return cells
 end
 
--- Les morceaux découverts d'une zone. Leur découpage ne dépend que de la zone : calculé à son
--- premier chargement (info.cells).
+-- Les morceaux découverts d'une zone. Leur découpage est calculé une fois par liste de morceaux
+-- (info.cellsFor) : une découverte remplace la liste, et le découpage est refait.
 local function AddOverlays(list, layer, info, rx, ry, rw, rh)
 	local sx, sy = rw / MAP_W, rh / MAP_H
 	local overlays = info.overlays
-	if not info.cells then
-		info.cells = {}
-		for i, o in ipairs(overlays) do info.cells[i] = PieceCells(o[2], o[3], ns.OverlaySides(overlays, i)) end
+	if info.cellsFor ~= overlays then
+		info.cells, info.cellsFor = {}, overlays
+		for i, o in ipairs(overlays) do
+			local sides, band = ns.FrameBand(o, info.c)
+			info.cells[i] = PieceCells(o[2], o[3], sides, band)
+		end
 	end
 	for i, o in ipairs(overlays) do
 		AddCells(list, layer, info.cells[i], o[1], rx + o[4] * sx, ry + o[5] * sy, sx, sy)
@@ -471,7 +458,13 @@ end
 local function LoadZone(e)
 	local L = V.layers
 	e.base = {}
-	AddMapTiles(e.base, e.city and L.city or L.base[e.depth], e.info.prefix, e.x, e.y, e.w, e.h, true)
+	if e.city then
+		-- (bord fin : le dessin d'une ville remplit presque toute sa carte, noms compris)
+		GRID.city = GRID.city or PieceCells(MAP_W, MAP_H, { left = true, right = true, top = true, bottom = true }, CITY_BAND)
+		AddCells(e.base, L.city, GRID.city, e.info.prefix, e.x, e.y, e.w / MAP_W, e.h / MAP_H)
+	else
+		AddMapTiles(e.base, L.base[e.depth], e.info.prefix, e.x, e.y, e.w, e.h, true)
+	end
 	e.over = {}
 	AddOverlays(e.over, L.over, e.info, e.x, e.y, e.w, e.h)
 	e.loaded, e.alpha = true, nil
