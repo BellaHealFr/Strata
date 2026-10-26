@@ -31,21 +31,25 @@ BUDGETS = {
 	-- Déplacement à la souris. [0.1.0]
 	-- [0.2, #49] bord adouci des morceaux découverts (côtés ouverts) et des continents : plus
 	-- de pièces par carte. Le client simulé a des morceaux ouverts de tous côtés (pire cas).
-	["déplacement.ops par image (moyenne)"] = 180,      -- [155.4]
+	-- [0.2, #51] resserré : seuls les côtés au bord de la carte de la zone sont adoucis.
+	["déplacement.ops par image (moyenne)"] = 125,      -- [108.7]
 	-- [0.2, #47] bord adouci : 24 morceaux par fond de zone au lieu de 12 (coins en tranches).
 	-- [0.2, #49] bord adouci des morceaux découverts (côtés ouverts) et des continents : plus
 	-- de pièces par carte. Le client simulé a des morceaux ouverts de tous côtés (pire cas).
-	["déplacement.ops par image (pire)"] = 1100,        -- [984] image où des zones se chargent
+	-- [0.2, #51] resserré : seuls les côtés au bord de la carte de la zone sont adoucis.
+	["déplacement.ops par image (pire)"] = 720,        -- [636] image où des zones se chargent
 	["déplacement.SetScale par image"] = 1,             -- [1] un seul cadre bougé, toujours
 
 	-- Zoom animé. [0.1.0]
 	-- [0.2, #47] bord adouci : 24 morceaux par fond de zone au lieu de 12 (coins en tranches).
 	-- [0.2, #49] bord adouci des morceaux découverts (côtés ouverts) et des continents : plus
 	-- de pièces par carte. Le client simulé a des morceaux ouverts de tous côtés (pire cas).
-	["zoom.ops par image (moyenne)"] = 48,             -- [41.4]
+	-- [0.2, #51] resserré : seuls les côtés au bord de la carte de la zone sont adoucis.
+	["zoom.ops par image (moyenne)"] = 36,             -- [31.6]
 	-- [0.2, #49] bord adouci des morceaux découverts (côtés ouverts) et des continents : plus
 	-- de pièces par carte. Le client simulé a des morceaux ouverts de tous côtés (pire cas).
-	["zoom.ops par image (pire)"] = 950,               -- [840]
+	-- [0.2, #51] resserré : seuls les côtés au bord de la carte de la zone sont adoucis.
+	["zoom.ops par image (pire)"] = 650,               -- [580]
 
 	-- Tour d'Azeroth : mémoire. [0.2, #22] 1 091 et 800 en 0.1.0 : textures des zones cachées
 	-- plafonnées (MAX_HIDDEN), rendues à la fermeture et au changement de vue.
@@ -55,7 +59,8 @@ BUDGETS = {
 	-- [0.2, #47] bord adouci : 24 morceaux par fond de zone au lieu de 12 (coins en tranches).
 	-- [0.2, #49] bord adouci des morceaux découverts (côtés ouverts) et des continents : plus
 	-- de pièces par carte. Le client simulé a des morceaux ouverts de tous côtés (pire cas).
-	["tour.CreateTexture"] = 540,                       -- [474] textures réutilisées, pas recréées
+	-- [0.2, #51] resserré : seuls les côtés au bord de la carte de la zone sont adoucis.
+	["tour.CreateTexture"] = 400,                       -- [346] textures réutilisées, pas recréées
 	["tour.textures chargées après 20 s"] = 64,         -- [51] tout ce qui est hors vue est rendu
 
 	-- Raid de 40. [0.1.0]
@@ -92,10 +97,12 @@ BUDGETS = {
 	-- Réouverture : les zones visibles se rechargent, une fois (#22). [0.2]
 	-- [0.2, #49] bord adouci des morceaux découverts (côtés ouverts) et des continents : plus
 	-- de pièces par carte. Le client simulé a des morceaux ouverts de tous côtés (pire cas).
-	["réouverture.ops"] = 2500,                         -- [2166]
+	-- [0.2, #51] resserré : seuls les côtés au bord de la carte de la zone sont adoucis.
+	["réouverture.ops"] = 1700,                         -- [1497]
 	-- [0.2, #49] bord adouci des morceaux découverts (côtés ouverts) et des continents : plus
 	-- de pièces par carte. Le client simulé a des morceaux ouverts de tous côtés (pire cas).
-	["réouverture.SetTexture"] = 430,                   -- [378]
+	-- [0.2, #51] resserré : seuls les côtés au bord de la carte de la zone sont adoucis.
+	["réouverture.SetTexture"] = 290,                   -- [250]
 
 	-- Carte fermée. [0.1.0] Le résiduel vient de la boucle du banc lui-même.
 	["fermée.ops par image"] = 1,                       -- [0.6]
