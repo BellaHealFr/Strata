@@ -40,14 +40,17 @@ function loadedTextures(region, seen)
 	return n
 end
 
--- Tuiles de carte chargées seulement (Interface\WorldMap\...) : sans les icônes (épingles,
--- joueur), qui partagent quelques petits fichiers.
-function loadedMapTiles(region, n)
-	n = n or 0
-	if region.kind == "Texture" and type(region.path) == "string" and region.path:find("Interface\\WorldMap\\", 1, true) == 1 then
-		n = n + 1
+-- Fichiers de tuiles de carte chargés (Interface\WorldMap\...), comptés une fois chacun : sans les
+-- icônes (épingles, joueur), qui partagent quelques petits fichiers.
+function loadedMapTiles(region, seen)
+	seen = seen or {}
+	local n = 0
+	if region.kind == "Texture" and type(region.path) == "string" and not seen[region.path]
+		and region.path:find("Interface\\WorldMap\\", 1, true) == 1 then
+		seen[region.path] = true
+		n = 1
 	end
-	for _, c in ipairs(region.children) do n = loadedMapTiles(c, n) end
+	for _, c in ipairs(region.children) do n = n + loadedMapTiles(c, seen) end
 	return n
 end
 

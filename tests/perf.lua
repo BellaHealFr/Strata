@@ -181,9 +181,9 @@ Strata_Toggle()
 -- 7. Carte fermée : rien ne doit tourner, même en changeant de zone, et les textures des zones
 -- sont rendues (#22).
 Strata_Toggle()
--- Les tuiles de carte (compteur de Map.lua) : les icônes du joueur et du groupe partagent un
+-- Les fichiers de tuiles de carte (compteur de Map.lua) : les icônes du joueur et du groupe partagent un
 -- seul petit fichier et ne comptent pas ici.
-budget("fermée.tuiles de carte chargées", ns.stats.textures)
+budget("fermée.tuiles de carte chargées", ns.stats.files)
 mean = measureFrames(150)
 budget("fermée.ops par image", mean.ops)
 local zone = measure(function() TEST.Fire("ZONE_CHANGED_NEW_AREA") end)

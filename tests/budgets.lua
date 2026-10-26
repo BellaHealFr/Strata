@@ -15,9 +15,13 @@ BUDGETS = {
 	-- Ouverture : lecture des 73 zones et des 4 continents, canevas, centrage. [0.1.0]
 	-- [0.2, #45] 529 → 635 : un cadre par profondeur de zones (7 au plus), et leur calcul, pour
 	-- que le fond d'une zone passe toujours au-dessus des plus grandes qu'elle touche.
-	["ouverture.ops"] = 700,                            -- [635]
+	-- [0.2, #49] bord adouci des morceaux découverts (côtés ouverts) et des continents : plus
+	-- de pièces par carte. Le client simulé a des morceaux ouverts de tous côtés (pire cas).
+	["ouverture.ops"] = 900,                            -- [824]
 	["ouverture.SetMapZoom"] = 80,                      -- [77] une fois par carte, pas plus
-	["ouverture.CreateTexture"] = 64,                   -- [50]
+	-- [0.2, #49] bord adouci des morceaux découverts (côtés ouverts) et des continents : plus
+	-- de pièces par carte. Le client simulé a des morceaux ouverts de tous côtés (pire cas).
+	["ouverture.CreateTexture"] = 100,                   -- [86]
 
 	-- Carte ouverte, immobile : seules les icônes vivent. [0.1.0]
 	["immobile.ops par image"] = 10,                   -- [7.6] index spatial (#6) ; 13.1 en 0.1.0
@@ -25,15 +29,23 @@ BUDGETS = {
 	["immobile.SetMapToCurrentZone par image"] = 0,     -- [0] la carte du client n'est pas touchée
 
 	-- Déplacement à la souris. [0.1.0]
-	["déplacement.ops par image (moyenne)"] = 91,      -- [72.7]
+	-- [0.2, #49] bord adouci des morceaux découverts (côtés ouverts) et des continents : plus
+	-- de pièces par carte. Le client simulé a des morceaux ouverts de tous côtés (pire cas).
+	["déplacement.ops par image (moyenne)"] = 180,      -- [155.4]
 	-- [0.2, #47] bord adouci : 24 morceaux par fond de zone au lieu de 12 (coins en tranches).
-	["déplacement.ops par image (pire)"] = 520,        -- [498] image où des zones se chargent
+	-- [0.2, #49] bord adouci des morceaux découverts (côtés ouverts) et des continents : plus
+	-- de pièces par carte. Le client simulé a des morceaux ouverts de tous côtés (pire cas).
+	["déplacement.ops par image (pire)"] = 1100,        -- [984] image où des zones se chargent
 	["déplacement.SetScale par image"] = 1,             -- [1] un seul cadre bougé, toujours
 
 	-- Zoom animé. [0.1.0]
 	-- [0.2, #47] bord adouci : 24 morceaux par fond de zone au lieu de 12 (coins en tranches).
-	["zoom.ops par image (moyenne)"] = 27,             -- [24.8]
-	["zoom.ops par image (pire)"] = 450,               -- [427]
+	-- [0.2, #49] bord adouci des morceaux découverts (côtés ouverts) et des continents : plus
+	-- de pièces par carte. Le client simulé a des morceaux ouverts de tous côtés (pire cas).
+	["zoom.ops par image (moyenne)"] = 48,             -- [41.4]
+	-- [0.2, #49] bord adouci des morceaux découverts (côtés ouverts) et des continents : plus
+	-- de pièces par carte. Le client simulé a des morceaux ouverts de tous côtés (pire cas).
+	["zoom.ops par image (pire)"] = 950,               -- [840]
 
 	-- Tour d'Azeroth : mémoire. [0.2, #22] 1 091 et 800 en 0.1.0 : textures des zones cachées
 	-- plafonnées (MAX_HIDDEN), rendues à la fermeture et au changement de vue.
@@ -41,7 +53,9 @@ BUDGETS = {
 	-- [0.2, #45] 108 → 160 : une texture rendue ne sert plus qu'à une zone de même profondeur.
 	-- Objets vides réutilisés, pas des fichiers : les textures chargées ne bougent pas.
 	-- [0.2, #47] bord adouci : 24 morceaux par fond de zone au lieu de 12 (coins en tranches).
-	["tour.CreateTexture"] = 310,                       -- [292] textures réutilisées, pas recréées
+	-- [0.2, #49] bord adouci des morceaux découverts (côtés ouverts) et des continents : plus
+	-- de pièces par carte. Le client simulé a des morceaux ouverts de tous côtés (pire cas).
+	["tour.CreateTexture"] = 540,                       -- [474] textures réutilisées, pas recréées
 	["tour.textures chargées après 20 s"] = 64,         -- [51] tout ce qui est hors vue est rendu
 
 	-- Raid de 40. [0.1.0]
@@ -76,8 +90,12 @@ BUDGETS = {
 	["vue Outreterre.textures gardées pour Azeroth"] = 48,
 	["fermée.tuiles de carte chargées"] = 60,             -- [60] Azeroth 48 + Outreterre 12
 	-- Réouverture : les zones visibles se rechargent, une fois (#22). [0.2]
-	["réouverture.ops"] = 1350,                         -- [1084]
-	["réouverture.SetTexture"] = 260,                   -- [208]
+	-- [0.2, #49] bord adouci des morceaux découverts (côtés ouverts) et des continents : plus
+	-- de pièces par carte. Le client simulé a des morceaux ouverts de tous côtés (pire cas).
+	["réouverture.ops"] = 2500,                         -- [2166]
+	-- [0.2, #49] bord adouci des morceaux découverts (côtés ouverts) et des continents : plus
+	-- de pièces par carte. Le client simulé a des morceaux ouverts de tous côtés (pire cas).
+	["réouverture.SetTexture"] = 430,                   -- [378]
 
 	-- Carte fermée. [0.1.0] Le résiduel vient de la boucle du banc lui-même.
 	["fermée.ops par image"] = 1,                       -- [0.6]
