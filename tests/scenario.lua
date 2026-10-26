@@ -667,3 +667,55 @@ do
 	ns.Rebuild()
 	Strata_Toggle()
 end
+
+-- #49 : bord adouci des morceaux découverts (côtés ouverts seulement) et des cartes de continent
+do
+	-- Côtés ouverts : B prolonge A vers le bas (et A prolonge B vers le haut) ; le reste est ouvert.
+	local A = { "a", 300, 200, 100, 50 }
+	local B = { "b", 300, 200, 100, 200 }
+	local sa, sb = ns.OverlaySides({ A, B }, 1), ns.OverlaySides({ A, B }, 2)
+	check(sa.top and sa.left and sa.right and not sa.bottom and not sb.top and sb.bottom,
+		"morceaux : un côté prolongé par un autre morceau n'est pas adouci, les autres oui")
+
+	if not StrataFrame:IsShown() then Strata_Toggle() end
+	ns.Rebuild()
+	local k = 1000 / ns.VIEWS.azeroth.size.w
+	local _, ex, ey = ns.ToView(2, "Elwynn", 0.5, 0.5)
+	ns.view.Center(ex * k, ey * k, 6)
+	tick(0.3)
+	local function corners(t)
+		local g = t.gradient
+		if not g then return 1, 1, 1, 1 end
+		if g[1] == "HORIZONTAL" then return g[2], g[3], g[2], g[3] end
+		return g[3], g[3], g[2], g[2]
+	end
+	-- Les morceaux d'un fichier « dossier\\nom » : leur bord extérieur (w x h) doit être transparent.
+	local function edges(pattern, w, h)
+		local n, bad, opaque = 0, 0, 0
+		local function walk(r)
+			if r.kind == "Texture" and r:IsVisible() and r.cell and type(r.path) == "string" and r.path:match(pattern) then
+				n = n + 1
+				local c = r.cell
+				local tl, tr, bl, br = corners(r)
+				if (c[1] == 0 and (tl > 0 or bl > 0)) or (c[3] == w and (tr > 0 or br > 0))
+					or (c[2] == 0 and (tl > 0 or tr > 0)) or (c[4] == h and (bl > 0 or br > 0)) then
+					bad = bad + 1
+				end
+				if tl == 1 and tr == 1 and bl == 1 and br == 1 then opaque = opaque + 1 end
+			end
+			for _, ch in ipairs(r.children) do walk(ch) end
+		end
+		walk(StrataFrame)
+		return n, bad, opaque
+	end
+	-- (le client simulé donne deux morceaux par zone qui ne se touchent pas : tous leurs côtés sont ouverts)
+	local n, bad, opaque = edges("^Interface\\WorldMap\\Elwynn\\Piece%d+$", 300, 200)
+	check(n > 2 and bad == 0 and opaque > 0, format("morceau découvert : bord transparent sur ses côtés ouverts, cœur opaque (%d pièces)", n))
+	-- Carte de continent : bord large adouci (cadre, mer et ornements fondus dans la carte du monde).
+	ns.view.Center(ex * k, ey * k, 2.5)
+	tick(0.3)
+	n, bad, opaque = edges("^Interface\\WorldMap\\Azeroth\\Azeroth%d+$", 1002, 668)
+	check(n == 24 and bad == 0 and opaque == 2, format("carte du continent : bord transparent sur tout le tour (%d pièces)", n))
+	ns.Rebuild()
+	Strata_Toggle()
+end
