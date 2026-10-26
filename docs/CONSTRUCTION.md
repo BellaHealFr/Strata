@@ -106,7 +106,7 @@ Cette conversion reste juste même si un autre addon a sélectionné une autre c
 
 Chaque vue (Azeroth, Outreterre) a son canevas de 1 000 unités de large. Une unité vaut `1 / k` yard, avec `k = 1000 / largeur de la vue`. Tout est placé une fois pour toutes en unités sur ce canevas.
 
-Couches, de bas en haut (un cadre par couche, niveaux croissants) :
+Couches, de bas en haut (un cadre par couche, niveaux croissants ; `base` en a un par profondeur de zones) :
 
 | Couche | Contenu | Visible |
 |---|---|---|
@@ -114,14 +114,18 @@ Couches, de bas en haut (un cadre par couche, niveaux croissants) :
 | `cont` | la carte du continent **sous le centre de la vue** | en fondu, de 1,4 à 2,2 fois le zoom minimal |
 | `base` | le fond de chaque zone, 12 tuiles | si le brouillard est affiché |
 | `over` | les morceaux découverts de chaque zone | toujours |
-| `city` | les villes, entièrement peintes | au-dessus de leurs voisines |
+| `city` | les villes, entièrement peintes | au-dessus de leurs voisines, à partir d'un cinquième de la vue |
 | `pins` | les épingles (`Pins.lua`), à taille constante à l'écran | toujours |
 
-Les tuiles d'une carte suivent exactement la carte de Blizzard : une grille de 4 × 3 tuiles de 256 pixels dont seuls 1002 × 668 pixels sont utiles. Les tuiles de bord sont recadrées (`SetTexCoord`). Les morceaux découverts sont découpés comme le fait `WorldMapFrame_Update`, avec la taille de fichier en puissance de 2 pour les tuiles de bord.
+Les tuiles d'une carte suivent exactement la carte de Blizzard : une grille de 4 × 3 tuiles de 256 pixels dont seuls 1002 × 668 pixels sont utiles. Les tuiles de bord sont recadrées (`SetTexCoord`). Comme `WorldMapDetailTile2..12`, chaque tuile est accrochée au bord de sa voisine de gauche, ou de celle du dessus en début de rangée : deux voisines partagent exactement le même bord, sans joint d'arrondi au zoom. Chaque tuile garde un demi-texel de marge sur ses bords, pour que le filtrage ne lise ni le bord opposé du fichier ni le vide au-delà. Les morceaux découverts sont découpés comme le fait `WorldMapFrame_Update`, avec la taille de fichier en puissance de 2 pour les tuiles de bord.
 
 Une seule carte de continent est affichée à la fois : leurs rectangles se chevauchent largement en mer (celui du Norfendre couvre le nord des Royaumes de l'Est), et leur océan opaque masquerait le continent voisin.
 
-Une zone paraît quand sa largeur à l'écran dépasse 220 pixels (90 pour une ville), en fondu jusqu'à 1,6 fois ce seuil. Les grandes zones sont posées d'abord, pour qu'une petite reste lisible.
+Une zone paraît quand sa largeur à l'écran dépasse 220 pixels, en fondu jusqu'à 1,6 fois ce seuil.
+
+**Ordre des zones.** Le fond d'une zone est un rectangle opaque qui déborde sur ses voisines. Le client 3.3.5 n'a pas de sous-niveau de dessin, et dans un même cadre l'ordre de textures réutilisées n'est pas garanti : `base` a donc un cadre par **profondeur**. Sur chaque continent, les zones sont prises des plus grandes aux plus petites, chacune un cran au-dessus des plus grandes qu'elle touche (7 crans au plus). Les morceaux découverts, transparents autour de leur forme, restent dans une seule couche `over`, au-dessus de tous les fonds.
+
+**Villes.** Comme dans OpenMap, la carte d'une ville ne paraît qu'une fois qu'elle remplit une part de la largeur de la vue (de 20 à 40 %, de 8 à 25 % pour Orgrimmar et les Pitons-du-Tonnerre, que leur zone ne dessine que floues). Avant, la zone autour dessine la ville. Le bord adouci d'OpenMap demande des textures masques, absentes de la 3.3.5.
 
 ## 7. Chargement et mémoire
 

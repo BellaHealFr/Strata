@@ -10,7 +10,12 @@
 --   cont  : la carte du continent sous le centre de la vue, en fondu avec le zoom
 --   base  : le fond de chaque zone (12 tuiles, comme WorldMapDetailFrame : 1002 x 668 px)
 --   over  : les morceaux découverts de chaque zone (GetMapOverlayInfo)
---   city  : les villes, entièrement peintes, au-dessus de leurs voisines
+--   city  : les villes, entièrement peintes, au-dessus de leurs voisines, une fois qu'elles
+--           remplissent une part de la vue (comme OpenMap : avant, la zone autour les dessine)
+--   base a un cadre par profondeur : le fond d'une zone (un rectangle opaque) passe au-dessus
+--   des zones plus grandes qu'elle touche. Le client 3.3.5 n'a pas de sous-niveau de dessin, et
+--   dans un même cadre l'ordre de textures réutilisées n'est pas garanti. Les morceaux
+--   découverts, transparents autour de leur forme, gardent une seule couche.
 --   pins  : les épingles (Pins.lua), emportées par un déplacement sans travail par épingle
 -- Les zones ne chargent leurs textures que visibles et assez grandes à l'écran, et les rendent
 -- quelques secondes après avoir quitté la vue (client 32 bits : la mémoire compte).
@@ -23,11 +28,16 @@ local L = ns.L
 
 local UNITS = 1000
 local MAP_W, MAP_H = 1002, 668      -- la partie utile des 4 x 3 tuiles de 256 px
-local LAYERS = { "world", "cont", "base", "over", "city", "pins" }
+local LAYERS = { "world", "cont", "base", "over", "city", "pins" }   -- base : un cadre par profondeur
 
 local ZOOM_MAX = 40
 local ZOOM_STEP = 1.3
-local ZONE_MIN_PX, CITY_MIN_PX = 220, 90   -- largeur à l'écran où une zone commence à paraître
+local ZONE_MIN_PX = 220                    -- largeur à l'écran où une zone commence à paraître
+-- Part de la largeur de la vue où la carte d'une ville paraît, puis est pleine (OpenMap : 0,2 à
+-- 0,4 ; plus tôt où la zone ne la dessine que floue : Orgrimmar sur Durotar, les Pitons-du-Tonnerre
+-- sur Mulgore).
+local CITY_FADE = { 0.2, 0.4 }
+local CITY_FADE_OF = { Ogrimmar = { 0.08, 0.25 }, ThunderBluff = { 0.08, 0.25 } }
 local CONT_FROM, CONT_FULL = 1.4, 2.2      -- zoom où la carte du continent paraît, puis est pleine
 local RELEASE_AFTER = 8                    -- secondes hors de la vue avant de rendre les textures
 local MAX_HIDDEN = 160                     -- textures de zones cachées gardées au plus (les plus
@@ -68,23 +78,36 @@ local function Release(layer, tex)
 	stats.textures = stats.textures - 1
 end
 
-local function Place(tex, layer, x, y, w, h, u, v)
+-- Une tuile d'une grille : la première au coin (x, y) de la couche, les autres accrochées au bord
+-- de leur voisine de gauche, ou de celle du dessus en début de rangée, comme WorldMapDetailTile2..12 :
+-- deux voisines partagent exactement le même bord, sans joint d'arrondi au zoom.
+-- Partie utile du fichier : pw x ph texels sur fw x fh, avec un demi-texel de marge sur chaque
+-- bord, pour que le filtrage ne lise ni le bord opposé du fichier ni le vide au-delà.
+local function PlaceTile(tex, layer, left, above, x, y, w, h, pw, ph, fw, fh)
 	tex:ClearAllPoints()
-	tex:SetPoint("TOPLEFT", layer, "TOPLEFT", x, -y)
+	if left then
+		tex:SetPoint("TOPLEFT", left, "TOPRIGHT")
+	elseif above then
+		tex:SetPoint("TOPLEFT", above, "BOTTOMLEFT")
+	else
+		tex:SetPoint("TOPLEFT", layer, "TOPLEFT", x, -y)
+	end
 	tex:SetWidth(w)
 	tex:SetHeight(h)
-	tex:SetTexCoord(0, u, 0, v)
+	tex:SetTexCoord(0.5 / fw, (pw - 0.5) / fw, 0.5 / fh, (ph - 0.5) / fh)
 end
 
 -- Les 12 tuiles d'une carte (prefix1 .. prefix12) sur un rectangle en unités.
 local function AddMapTiles(list, layer, prefix, rx, ry, rw, rh)
 	local sx, sy = rw / MAP_W, rh / MAP_H
+	local first = #list
 	for i = 1, 12 do
 		local col, row = (i - 1) % 4, floor((i - 1) / 4)
 		local px, py = col * 256, row * 256
 		local pw, ph = min(256, MAP_W - px), min(256, MAP_H - py)
 		local tex = Acquire(layer)
-		Place(tex, layer, rx + px * sx, ry + py * sy, pw * sx, ph * sy, pw / 256, ph / 256)
+		PlaceTile(tex, layer, col > 0 and list[first + i - 1], row > 0 and list[first + i - 4],
+			rx, ry, pw * sx, ph * sy, pw, ph, 256, 256)
 		tex:SetTexture(prefix .. i)
 		list[#list + 1] = tex
 	end
@@ -103,6 +126,7 @@ local function AddOverlays(list, layer, overlays, rx, ry, rw, rh)
 	for _, o in ipairs(overlays) do
 		local name, tw, th, offX, offY = o[1], o[2], o[3], o[4], o[5]
 		local wide, tall = ceil(tw / 256), ceil(th / 256)
+		local first = #list
 		for j = 1, tall do
 			local ph, fh = 256, 256
 			if j == tall then
@@ -118,9 +142,10 @@ local function AddOverlays(list, layer, overlays, rx, ry, rw, rh)
 					fw = FileSize(pw)
 				end
 				local tex = Acquire(layer)
-				Place(tex, layer, rx + (offX + 256 * (k - 1)) * sx, ry + (offY + 256 * (j - 1)) * sy,
-					pw * sx, ph * sy, pw / fw, ph / fh)
-				tex:SetTexture(name .. ((j - 1) * wide + k))
+				local n = (j - 1) * wide + k
+				PlaceTile(tex, layer, k > 1 and list[first + n - 1], j > 1 and list[first + n - wide],
+					rx + offX * sx, ry + offY * sy, pw * sx, ph * sy, pw, ph, fw, fh)
+				tex:SetTexture(name .. n)
 				list[#list + 1] = tex
 			end
 		end
@@ -152,18 +177,61 @@ local function BuildCanvas(name)
 	local k = UNITS / view.size.w
 	local c = {
 		name = name, k = k, w = UNITS, h = view.size.h * k,
-		zones = {}, conts = {},
+		conts = {},
 	}
 	c.frame = CreateFrame("Frame", nil, child)
 	c.frame:SetWidth(c.w)
 	c.frame:SetHeight(c.h)
+	-- Les zones, avant les couches : leur profondeur fixe le nombre de cadres de base.
+	c.zones = {}
+	local depth = 1
+	for _, cont in ipairs(view.continents) do
+		local C = Zones[cont]
+		local bx, by = 0, 0
+		if C.parent == 0 then bx, by = C.x, C.y end
+		local map = ns.maps[cont]
+		local land = {}       -- les zones du continent hors villes, seules à pouvoir se toucher
+		for file, Z in pairs(C.zones) do
+			local info = map and map.zones[file]
+			if not Z[5] and info then
+				local e = {
+					info = info, file = file, city = ns.CITIES[file], depth = 1,
+					x = (bx + Z[3]) * k, y = (by + Z[4]) * k, w = Z[1] * k, h = Z[2] * k,
+				}
+				c.zones[#c.zones + 1] = e
+				if not e.city then land[#land + 1] = e end
+			end
+		end
+		-- Les grandes d'abord ; chaque zone un cran au-dessus des plus grandes qu'elle touche.
+		sort(land, function(a, b) return a.w * a.h > b.w * b.h end)
+		for i, e in ipairs(land) do
+			for j = 1, i - 1 do
+				local o = land[j]
+				if e.x < o.x + o.w and o.x < e.x + e.w and e.y < o.y + o.h and o.y < e.y + e.h and o.depth >= e.depth then
+					e.depth = o.depth + 1
+				end
+			end
+			if e.depth > depth then depth = e.depth end
+		end
+	end
+
 	c.layers = {}
-	for i, layerName in ipairs(LAYERS) do
+	local level = c.frame:GetFrameLevel()
+	local function NewLayer()
+		level = level + 1
 		local layer = CreateFrame("Frame", nil, c.frame)
 		layer:SetAllPoints(c.frame)
-		layer:SetFrameLevel(c.frame:GetFrameLevel() + i)
+		layer:SetFrameLevel(level)
 		layer.pool = {}
-		c.layers[layerName] = layer
+		return layer
+	end
+	for _, layerName in ipairs(LAYERS) do
+		if layerName == "base" then
+			c.layers[layerName] = {}
+			for d = 1, depth do c.layers[layerName][d] = NewLayer() end
+		else
+			c.layers[layerName] = NewLayer()
+		end
 	end
 
 	if view.world then
@@ -184,25 +252,14 @@ local function BuildCanvas(name)
 			ShowAll(tiles, false)
 			c.conts[cont] = tiles
 		end
-		for file, Z in pairs(C.zones) do
-			local info = map and map.zones[file]
-			if not Z[5] and info then
-				c.zones[#c.zones + 1] = {
-					info = info, city = ns.CITIES[file],
-					x = (bx + Z[3]) * k, y = (by + Z[4]) * k, w = Z[1] * k, h = Z[2] * k,
-				}
-			end
-		end
 	end
-	-- Les grandes d'abord : à alpha égal, une petite zone posée après reste lisible.
-	sort(c.zones, function(a, b) return a.w * a.h > b.w * b.h end)
 	return c
 end
 
 local function LoadZone(e)
 	local L = V.layers
 	e.base = {}
-	AddMapTiles(e.base, e.city and L.city or L.base, e.info.prefix, e.x, e.y, e.w, e.h)
+	AddMapTiles(e.base, e.city and L.city or L.base[e.depth], e.info.prefix, e.x, e.y, e.w, e.h)
 	e.over = {}
 	AddOverlays(e.over, L.over, e.info.overlays, e.x, e.y, e.w, e.h)
 	e.loaded = true
@@ -217,7 +274,7 @@ end
 local function UnloadZone(e, c)
 	local L = (c or V).layers
 	if e.hiddenAt then hidden = hidden - ZoneTextures(e) end
-	ReleaseAll(e.city and L.city or L.base, e.base)
+	ReleaseAll(e.city and L.city or L.base[e.depth], e.base)
 	ReleaseAll(L.over, e.over)
 	e.loaded, e.hiddenAt = nil, nil
 	stats.zones = stats.zones - 1
@@ -316,8 +373,13 @@ local function UpdateLayers()
 
 	for _, e in ipairs(V.zones) do
 		local px = e.w * zoom
-		local minPx = e.city and CITY_MIN_PX or ZONE_MIN_PX
-		local alpha = Ramp(px, minPx, minPx * 1.6)
+		local alpha
+		if e.city then
+			local fade = CITY_FADE_OF[e.file] or CITY_FADE
+			alpha = Ramp(px, fade[1] * vw, fade[2] * vw)
+		else
+			alpha = Ramp(px, ZONE_MIN_PX, ZONE_MIN_PX * 1.6)
+		end
 		local visible = alpha > 0 and e.x < x1 and e.x + e.w > x0 and e.y < y1 and e.y + e.h > y0
 		if visible then
 			if not e.loaded then LoadZone(e) end
@@ -670,7 +732,7 @@ local function CreateWindow()
 
 	pins = CreateFrame("Frame", nil, child)
 	pins:SetAllPoints(child)
-	pins:SetFrameLevel(child:GetFrameLevel() + 20)
+	pins:SetFrameLevel(child:GetFrameLevel() + 30)   -- au-dessus des couches du canevas (une vingtaine)
 	arrow = pins:CreateTexture(nil, "OVERLAY")
 	arrow:SetTexture("Interface\\Minimap\\MinimapArrow")
 	arrow:SetWidth(32)
