@@ -2,6 +2,14 @@
 
 ## Non publié
 
+### Corrections
+- **Joints entre les tuiles** : chaque tuile d'une carte est accrochée au bord de sa voisine, comme sur la carte de Blizzard, et ne lit plus le bord de la tuile d'à côté. Plus de fine ligne entre les morceaux d'une zone au zoom.
+- **Zones superposées** : le fond d'une zone passe toujours au-dessus des zones plus grandes qu'elle touche. Avant, l'ordre entre deux voisines n'était pas garanti et pouvait changer d'une ouverture à l'autre.
+- **Villes** : la carte d'une ville n'apparaît plus qu'une fois qu'elle remplit une part de la vue (un cinquième, plus tôt pour Orgrimmar et les Pitons-du-Tonnerre), comme dans OpenMap. Avant, son rectangle et ses alentours se posaient sur la zone dès qu'elle mesurait 90 pixels.
+
+### Performances
+- Ouverture un peu plus chère (cadres par profondeur de zones), sans effet mesurable en jeu ; textures chargées inchangées.
+
 ### Ajouts
 - **Plein écran** : un bouton dans la barre de titre (ou `/strata plein`) passe la carte en plein écran, et la ramène à la fenêtre avec exactement la même taille et la même position. Le mode est retenu à la réouverture.
 - **Niveaux des zones au survol** : la tranche de niveaux de la zone survolée s'affiche à côté de son nom (« Forêt d'Elwynn (1-10) »), à la couleur des quêtes selon votre niveau : rouge trop haut, jaune à votre niveau, vert puis gris quand c'est facile.

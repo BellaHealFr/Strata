@@ -79,11 +79,11 @@ function Region:IsMouseOver() return TEST.mouseOver end
 function Region:GetPoint() return "CENTER", nil, "CENTER", 0, 0 end
 function Region:SetPoint(point, rel, relPoint, x, y)
 	count("SetPoint")
-	if type(rel) == "number" then x, y = rel, relPoint end
+	if type(rel) == "number" then x, y, rel, relPoint = rel, relPoint, nil, nil end
 	for _, v in ipairs({ x, y }) do
 		assert(v == nil or (v == v and v ~= math.huge and v ~= -math.huge), "SetPoint : valeur invalide")
 	end
-	self.point = { point, x, y }
+	self.point = { point, x, y, rel = rel, relPoint = relPoint }
 end
 function Region:ClearAllPoints() self.point, self.allPoints = nil, nil end
 function Region:SetAllPoints(rel) self.allPoints = rel or self.parent end
