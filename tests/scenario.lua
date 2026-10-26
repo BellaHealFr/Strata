@@ -491,3 +491,87 @@ check(not ns.db.fullscreen and StrataFrame.allPoints == nil and StrataFrame.w ==
 	"/strata plein : retour à la fenêtre, même taille et même position")
 check(grabber:IsShown(), "retour en fenêtre : poignée de redimensionnement revenue")
 Strata_Toggle()
+
+-- #45 : rendu des zones (comparé à la carte de Blizzard 3.3.5 et à OpenMap)
+do
+	if not StrataFrame:IsShown() then Strata_Toggle() end
+	ns.Rebuild()
+	local Z2 = ns.Zones[2]
+	local k = 1000 / ns.VIEWS.azeroth.size.w
+	local function centerOnZone(file, zoom)
+		local z = Z2.zones[file]
+		ns.view.Center((Z2.x + z[3] + z[1] / 2) * k, (Z2.y + z[4] + z[2] / 2) * k, zoom)
+		tick(0.3)
+	end
+	-- Textures visibles d'une carte de zone : fichier -> { [numéro de tuile] = texture }
+	local function zoneTiles()
+		local out = {}
+		local function walk(r)
+			if r.kind == "Texture" and r:IsVisible() and type(r.path) == "string" then
+				local file, n = r.path:match("^Interface\\WorldMap\\(%w+)\\%1(%d+)$")
+				if file and Z2.zones[file] then
+					out[file] = out[file] or {}
+					out[file][tonumber(n)] = r
+				end
+			end
+			for _, c in ipairs(r.children) do walk(c) end
+		end
+		walk(StrataFrame)
+		return out
+	end
+	centerOnZone("Elwynn", 6)
+	local tiles = zoneTiles().Elwynn
+	check(tiles and tiles[1] and tiles[12], "Forêt d'Elwynn affichée")
+	-- Joints : chaque tuile accrochée au bord de la précédente, comme WorldMapDetailTile2..12.
+	check(tiles[2].point.rel == tiles[1] and tiles[2].point.relPoint == "TOPRIGHT"
+		and tiles[5].point.rel == tiles[1] and tiles[5].point.relPoint == "BOTTOMLEFT"
+		and tiles[12].point.rel == tiles[11],
+		"tuiles accrochées les unes aux autres (pas de joint d'arrondi)")
+	-- Et aucune ne lit le bord de sa voisine : demi-texel de marge.
+	local tc = tiles[1].texcoord
+	check(tc[1] > 0 and tc[1] < 1 / 256 and tc[2] < 1 and tc[2] > 255 / 256, "demi-texel de marge sur les bords des tuiles")
+
+	-- Ordre : une zone passe au-dessus des zones plus grandes qu'elle touche, toujours.
+	-- (au zoom 6, une quinzaine de zones du sud des Royaumes de l'Est sont chargées)
+	centerOnZone("Duskwood", 6)
+	local shown = zoneTiles()
+	local function level(t) return t.parent:GetFrameLevel() end
+	local wrong, pairsChecked = {}, 0
+	for a, ta in pairs(shown) do
+		for b, tb in pairs(shown) do
+			local za, zb = Z2.zones[a], Z2.zones[b]
+			if a ~= b and not ns.CITIES[a] and not ns.CITIES[b] and za[1] * za[2] > zb[1] * zb[2]
+				and za[3] < zb[3] + zb[1] and zb[3] < za[3] + za[1] and za[4] < zb[4] + zb[2] and zb[4] < za[4] + za[2] then
+				pairsChecked = pairsChecked + 1
+				if not (level(ta[1]) < level(tb[1])) then wrong[#wrong + 1] = b .. " sous " .. a end
+			end
+		end
+	end
+	check(pairsChecked >= 5 and #wrong == 0, format("%d paires de zones voisines dans l'ordre (petite sur grande) %s", pairsChecked, table.concat(wrong, ", ")))
+	-- Les morceaux découverts restent au-dessus de tous les fonds.
+	local maxBase, minOver = 0, math.huge
+	local function walk(r)
+		if r.kind == "Texture" and r:IsVisible() and type(r.path) == "string" and r.path:find("^Interface\\WorldMap\\") then
+			local file, rest = r.path:match("^Interface\\WorldMap\\(%w+)\\(.+)$")
+			if file and Z2.zones[file] and not ns.CITIES[file] then
+				if rest:match("^" .. file .. "%d+$") then maxBase = math.max(maxBase, level(r))
+				else minOver = math.min(minOver, level(r)) end
+			end
+		end
+		for _, c in ipairs(r.children) do walk(c) end
+	end
+	walk(StrataFrame)
+	check(minOver > maxBase, "morceaux découverts au-dessus de tous les fonds")
+
+	-- Villes : comme OpenMap, seulement quand elles remplissent une part de la vue.
+	local vw = ns.view.Size()
+	local sw = Z2.zones.Stormwind[1] * k
+	centerOnZone("Stormwind", 0.15 * vw / sw)
+	check(not zoneTiles().Stormwind, "Hurlevent à 15 % de la vue : pas encore sa carte (Elwynn la dessine)")
+	check(zoneTiles().Elwynn, "... et Elwynn reste affichée")
+	centerOnZone("Stormwind", 0.6 * vw / sw)
+	local city = zoneTiles().Stormwind
+	check(city and city[1] and level(city[1]) > minOver, "Hurlevent à 60 % de la vue : sa carte, au-dessus des zones")
+	ns.Rebuild()
+	Strata_Toggle()
+end

@@ -13,7 +13,9 @@
 
 BUDGETS = {
 	-- Ouverture : lecture des 73 zones et des 4 continents, canevas, centrage. [0.1.0]
-	["ouverture.ops"] = 600,                            -- [474]
+	-- [0.2, #45] 529 → 635 : un cadre par profondeur de zones (7 au plus), et leur calcul, pour
+	-- que le fond d'une zone passe toujours au-dessus des plus grandes qu'elle touche.
+	["ouverture.ops"] = 700,                            -- [635]
 	["ouverture.SetMapZoom"] = 80,                      -- [77] une fois par carte, pas plus
 	["ouverture.CreateTexture"] = 64,                   -- [50]
 
@@ -34,7 +36,9 @@ BUDGETS = {
 	-- Tour d'Azeroth : mémoire. [0.2, #22] 1 091 et 800 en 0.1.0 : textures des zones cachées
 	-- plafonnées (MAX_HIDDEN), rendues à la fermeture et au changement de vue.
 	["tour.textures chargées (pire moment)"] = 485,     -- [387]
-	["tour.CreateTexture"] = 135,                       -- [108] textures réutilisées, pas recréées
+	-- [0.2, #45] 108 → 160 : une texture rendue ne sert plus qu'à une zone de même profondeur.
+	-- Objets vides réutilisés, pas des fichiers : les textures chargées ne bougent pas.
+	["tour.CreateTexture"] = 180,                       -- [160] textures réutilisées, pas recréées
 	["tour.textures chargées après 20 s"] = 64,         -- [51] tout ce qui est hors vue est rendu
 
 	-- Raid de 40. [0.1.0]
