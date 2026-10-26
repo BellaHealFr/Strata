@@ -604,6 +604,7 @@ do
 	-- Transparence aux quatre coins d'un morceau : haut-gauche, haut-droit, bas-gauche, bas-droit.
 	local function corners(t)
 		local g = t.gradient
+		if not g then return 1, 1, 1, 1 end   -- (pièce sans dégradé : opaque)
 		if g[1] == "HORIZONTAL" then return g[2], g[3], g[2], g[3] end
 		return g[3], g[3], g[2], g[2]
 	end
@@ -670,13 +671,13 @@ end
 
 -- #49 : bord adouci des morceaux découverts (côtés ouverts seulement) et des cartes de continent
 do
-	-- Côtés ouverts : B prolonge A vers le bas (et A prolonge B vers le haut) ; le reste est ouvert.
-	local A = { "a", 300, 200, 100, 50 }
-	local B = { "b", 300, 200, 100, 200 }
-	local sa, sb = ns.OverlaySides({ A, B }, 1), ns.OverlaySides({ A, B }, 2)
-	check(sa.top and sa.left and sa.right and not sa.bottom and not sb.top and sb.bottom,
-		"morceaux : un côté prolongé par un autre morceau n'est pas adouci, les autres oui")
-
+	-- Côtés au bord de la carte de la zone (#51) : seuls ceux-là portent le cadre de Blizzard.
+	local sides, band = ns.FrameBand({ "a", 300, 200, 100, 50 }, 2)
+	check(not (sides.left or sides.right or sides.top or sides.bottom), "morceau à l'intérieur de la carte : aucun côté adouci")
+	sides, band = ns.FrameBand({ "a", 288, 222, 0, 0 }, 2)
+	check(sides.left and sides.top and not sides.right and not sides.bottom and band == 32, "morceau dans le coin haut-gauche : côtés haut et gauche, bord fin")
+	sides, band = ns.FrameBand({ "a", 288, 222, 0, 0 }, 4)
+	check(band == 128, "coin d'une carte du Norfendre : bande large (ornements)")
 	if not StrataFrame:IsShown() then Strata_Toggle() end
 	ns.Rebuild()
 	local k = 1000 / ns.VIEWS.azeroth.size.w
@@ -708,14 +709,53 @@ do
 		walk(StrataFrame)
 		return n, bad, opaque
 	end
-	-- (le client simulé donne deux morceaux par zone qui ne se touchent pas : tous leurs côtés sont ouverts)
+	-- Morceau à l'intérieur : intact (Blizzard a déjà fondu ses bords).
 	local n, bad, opaque = edges("^Interface\\WorldMap\\Elwynn\\Piece%d+$", 300, 200)
-	check(n > 2 and bad == 0 and opaque > 0, format("morceau découvert : bord transparent sur ses côtés ouverts, cœur opaque (%d pièces)", n))
+	check(n == 2 and opaque == 2, format("morceau à l'intérieur : intact, sans découpe (%d pièces)", n))
+	-- Morceau dans le coin bas-droit : bords droit et bas transparents, côtés intérieurs opaques.
+	local inner = 0
+	n, bad = edges("^Interface\\WorldMap\\Elwynn\\Corner%d+$", 256, 512)
+	local function walk(r)
+		if r.kind == "Texture" and r:IsVisible() and r.cell and type(r.path) == "string" and r.path:match("Elwynn\\Corner") then
+			local tl, _, bl = corners(r)
+			if r.cell[1] == 0 and r.cell[2] == 0 and tl == 1 then inner = inner + 1 end
+		end
+		for _, ch in ipairs(r.children) do walk(ch) end
+	end
+	walk(StrataFrame)
+	check(n > 2 and inner == 1, format("morceau au bord de la carte : côtés du bord adoucis, côtés intérieurs intacts (%d pièces)", n))
 	-- Carte de continent : bord large adouci (cadre, mer et ornements fondus dans la carte du monde).
 	ns.view.Center(ex * k, ey * k, 2.5)
 	tick(0.3)
 	n, bad, opaque = edges("^Interface\\WorldMap\\Azeroth\\Azeroth%d+$", 1002, 668)
 	check(n == 24 and bad == 0 and opaque == 2, format("carte du continent : bord transparent sur tout le tour (%d pièces)", n))
+	ns.Rebuild()
+	Strata_Toggle()
+end
+
+-- #51 : une découverte remplace la liste des morceaux d'une zone ; leur découpage suit.
+do
+	if not StrataFrame:IsShown() then Strata_Toggle() end
+	local info = ns.maps[2].zones.Elwynn
+	local old = info.overlays
+	local k = 1000 / ns.VIEWS.azeroth.size.w
+	local _, ex, ey = ns.ToView(2, "Elwynn", 0.5, 0.5)
+	ns.Rebuild()
+	ns.view.Center(ex * k, ey * k, 6)
+	tick(0.3)
+	-- (nouveau morceau dans le coin haut-gauche de la carte : il doit être découpé)
+	info.overlays = { { "Interface\WorldMap\Elwynn\Found", 256, 256, 0, 0 } }
+	ns.Rebuild()
+	ns.view.Center(ex * k, ey * k, 6)
+	tick(0.3)
+	local pieces = 0
+	local function walk(r)
+		if r.kind == "Texture" and r:IsVisible() and r.path == "Interface\WorldMap\Elwynn\Found1" then pieces = pieces + 1 end
+		for _, c in ipairs(r.children) do walk(c) end
+	end
+	walk(StrataFrame)
+	check(pieces > 1, format("morceau tout juste découvert : découpé avec son bord adouci (%d pièces)", pieces))
+	info.overlays = old
 	ns.Rebuild()
 	Strata_Toggle()
 end
