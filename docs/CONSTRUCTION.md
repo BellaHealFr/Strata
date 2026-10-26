@@ -49,6 +49,7 @@ Version décrite : **0.1.0**.
 | `Strata.toc` | Déclaration de l'addon pour le client |
 | `Locale.lua` | Textes de l'interface, en anglais et en français |
 | `Data/Zones.lua` | Taille et position de chaque continent et zone, en yards (généré) |
+| `Data/Overlays.lua` | Tous les morceaux des cartes de zone, découverts ou non (`WorldMapOverlay`, 886 morceaux, généré) : la carte révélée, brouillard éteint |
 | `Data/Levels.lua` | Tranche de niveaux de chaque zone, que le client ne donne pas (Warcraft Wiki) ; affichée au survol par `ns.ZoneText`, à la couleur de `GetQuestDifficultyColor` |
 | `Core.lua` | Réglages, lecture des cartes du client, conversion des positions, commandes |
 | `Map.lua` | La fenêtre, le canevas, le zoom, les icônes |
@@ -59,6 +60,7 @@ Version décrite : **0.1.0**.
 | `Bench.lua` | Mesure en jeu : compteur à l'écran (`/strata debug`) et parcours de mesure (`/strata bench`) |
 | `Bindings.xml` | Le raccourci clavier |
 | `tools/extract_zones.py` | Génère `Data/Zones.lua` |
+| `tools/extract_overlays.py` | Génère `Data/Overlays.lua` depuis les archives MPQ d'un client 3.3.5 (lecture seule, `mpyq`) |
 | `tests/` | Banc de simulation : un client 3.3.5 simulé et un scénario |
 
 Le client fournit tout ce qui se voit : images des cartes, morceaux découverts, noms des zones (déjà traduits), positions des unités. Strata n'apporte que les rectangles des zones, que le client ne donne pas à un addon.
@@ -85,7 +87,7 @@ Ces valeurs sont reprises de la table `WorldMapSize` d'Astrolabe, la bibliothèq
 `ns.Scan` (`Core.lua`) parcourt chaque continent et chaque zone avec `SetMapZoom`, et retient pour chacune :
 - le nom de fichier de la carte (`GetMapInfo`) ;
 - le préfixe de ses tuiles, calculé comme `WorldMapFrame_Update` (étage de donjon compris) ;
-- ses morceaux découverts (`GetMapOverlayInfo`) : seuls ceux que le joueur a découverts sont renvoyés, ce qui donne le brouillard sans aucune donnée en plus.
+- ses morceaux découverts (`GetMapOverlayInfo`) : seuls ceux que le joueur a découverts sont renvoyés, ce qui donne le brouillard sans aucune donnée en plus. Brouillard éteint, `Data/Overlays.lua` donne tous les autres : ils sont ajoutés par nom (`Revealed`), comme le « fog clear » de Mapster, et la carte est révélée.
 
 `SetMapZoom` change la carte sélectionnée du client, celle que partagent la carte de Blizzard et les autres addons. La lecture n'a donc lieu que **carte de Blizzard fermée**, et la zone du joueur est resélectionnée juste après (`SetMapToCurrentZone`). Elle est faite une fois, à la première ouverture. Ensuite, seule la zone du joueur est relue, à chaque ouverture et à chaque changement de zone, pour suivre ce qui vient d'être découvert.
 
@@ -110,10 +112,10 @@ Couches, de bas en haut (un cadre par couche, niveaux croissants ; `base` en a u
 
 | Couche | Contenu | Visible |
 |---|---|---|
-| `world` | la carte du monde de Blizzard | vue Azeroth, toujours |
+| `world` | la carte du monde de Blizzard, bord adouci | vue Azeroth, toujours |
 | `cont` | la carte du continent **sous le centre de la vue** | en fondu, de 1,4 à 2,2 fois le zoom minimal |
-| `base` | le fond de chaque zone, 12 tuiles | si le brouillard est affiché |
-| `over` | les morceaux découverts de chaque zone | toujours |
+| `base` | le fond de chaque zone, 12 tuiles | toujours (sous les morceaux) |
+| `over` | les morceaux découverts de chaque zone ; brouillard éteint, tous ses morceaux | toujours |
 | `city` | les villes, entièrement peintes | au-dessus de leurs voisines, à partir d'un cinquième de la vue |
 | `pins` | les épingles (`Pins.lua`), à taille constante à l'écran | toujours |
 

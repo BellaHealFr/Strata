@@ -63,6 +63,13 @@ BUDGETS = {
 	["tour.CreateTexture"] = 400,                       -- [346] textures réutilisées, pas recréées
 	["tour.textures chargées après 20 s"] = 64,         -- [51] tout ce qui est hors vue est rendu
 
+	-- Carte révélée (brouillard éteint, #53) [0.2] : le même tour, avec tous les morceaux des zones
+	-- (Data/Overlays.lua) au lieu des seuls découverts. Fichiers, pas pièces.
+	["révélée.textures chargées (pire moment)"] = 420,   -- [352]
+	["révélée.CreateTexture"] = 280,                     -- [231]
+	["révélée.déplacement.ops par image (moyenne)"] = 140, -- [116.2]
+	["révélée.déplacement.ops par image (pire)"] = 1900, -- [1622]
+
 	-- Raid de 40. [0.1.0]
 	["raid 40.ops par image"] = 112,                   -- [89.5]
 	["raid 40.GetPlayerMapPosition par image"] = 21,    -- [20]

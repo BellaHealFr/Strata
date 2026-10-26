@@ -29,7 +29,7 @@ ns.CITIES = {
 }
 
 local defaults = {
-	fog = true,          -- dessiner le fond des zones (le brouillard des parties non découvertes)
+	fog = true,          -- brouillard sur les parties non découvertes ; éteint : carte entière révélée
 	w = 1000, h = 700,
 	views = {},          -- [vue] = { zoom, cx, cy } : la dernière vue de chaque carte
 }

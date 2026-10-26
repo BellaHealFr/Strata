@@ -11,6 +11,7 @@
 Locale.lua
 Data\Zones.lua
 Data\Levels.lua
+Data\Overlays.lua
 Core.lua
 Map.lua
 Search.lua

@@ -196,4 +196,32 @@ budget("réouverture.ops", reopen.ops)
 budget("réouverture.SetTexture", reopen.SetTexture)
 Strata_Toggle()
 
+-- Fin. Carte révélée (brouillard éteint, #53) : le tour d'Azeroth avec tous les morceaux des zones,
+-- découverts ou non. En dernier : il laisse la vue ailleurs et des zones à recharger.
+if not StrataFrame:IsShown() then Strata_Toggle() end
+tick(1)
+ns.db.fog = false
+ns.Refresh()
+tick(1)
+local maxRevealed = 0
+local reveal = measure(function()
+	for gy = 0.1, 0.9, 0.2 do
+		for gx = 0.05, 0.95, 0.1 do
+			centerOn(gx * ns_canvas_w, gy * 667)
+			maxRevealed = math.max(maxRevealed, loadedTextures(StrataFrame))
+		end
+	end
+end)
+budget("révélée.textures chargées (pire moment)", maxRevealed)
+budget("révélée.CreateTexture", reveal.CreateTexture)
+scroll.scripts.OnMouseDown(scroll, "LeftButton")
+mean, peak = measureFrames(200, function(i) TEST.cursor = { 500 - 3 * i, 400 - i } end)
+scroll.scripts.OnMouseUp(scroll, "LeftButton")
+budget("révélée.déplacement.ops par image (moyenne)", mean.ops)
+budget("révélée.déplacement.ops par image (pire)", peak.ops)
+ns.db.fog = true
+ns.Refresh()
+TEST.time = TEST.time + 20
+tick(3)
+
 check(not TEST.failed, (TEST.failed or 0) .. " budget(s) dépassé(s)")
