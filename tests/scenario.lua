@@ -523,12 +523,25 @@ do
 	local tiles = zoneTiles().Elwynn
 	check(tiles and tiles[1] and tiles[12], "Forêt d'Elwynn affichée")
 	-- Joints : chaque tuile accrochée au bord de la précédente, comme WorldMapDetailTile2..12.
-	-- (les tuiles des coins sont découpées en tranches, #47 : on reconnaît la voisine à son fichier)
-	local function relFile(t) return t.point.rel and t.point.rel.path end
-	check(relFile(tiles[2]) == tiles[1].path and tiles[2].point.relPoint == "TOPRIGHT"
-		and relFile(tiles[5]) == tiles[1].path and tiles[5].point.rel.cell[1] == 0 and tiles[5].point.relPoint == "BOTTOMLEFT"
-		and tiles[6].point.rel == tiles[5] and tiles[6].point.relPoint == "TOPRIGHT",
-		"tuiles accrochées les unes aux autres (pas de joint d'arrondi)")
+	-- Toute pièce qui a une voisine juste à sa gauche (même rangée) y est accrochée par son bord.
+	do
+		local pieces = {}
+		local function walk(r)
+			if r.kind == "Texture" and r:IsVisible() and r.cell and type(r.path) == "string"
+				and r.path:match("Elwynn\\Elwynn%d+$") then pieces[#pieces + 1] = r end
+			for _, c in ipairs(r.children) do walk(c) end
+		end
+		walk(StrataFrame)
+		local linked, loose = 0, 0
+		for _, a in ipairs(pieces) do
+			for _, b in ipairs(pieces) do
+				if b.cell[3] == a.cell[1] and b.cell[2] == a.cell[2] then
+					if a.point.rel == b and a.point.relPoint == "TOPRIGHT" then linked = linked + 1 else loose = loose + 1 end
+				end
+			end
+		end
+		check(linked > 10 and loose == 0, format("tuiles accrochées les unes aux autres (pas de joint d'arrondi) : %d", linked))
+	end
 	-- Et aucune ne lit le bord de sa voisine : demi-texel de marge.
 	local tc = tiles[2].texcoord
 	check(tc[1] > 0 and tc[1] < 1 / 256 and tc[2] < 1 and tc[2] > 255 / 256, "demi-texel de marge sur les bords des tuiles")
@@ -833,6 +846,47 @@ do
 	tick(0.3)
 	check(azeroth and math.abs(azeroth - 0.545) < 0.01 and outland and math.abs(outland - 0.49) < 0.01,
 		format("mer autour de la carte, couleur de chaque vue (%s / %s)", tostring(azeroth), tostring(outland)))
+	ns.Rebuild()
+	Strata_Toggle()
+end
+
+-- #55 : le fond d'une zone ne déborde pas du rectangle de ses morceaux ; celui d'une ville, de son plan.
+do
+	if not StrataFrame:IsShown() then Strata_Toggle() end
+	ns.Rebuild()
+	local k = 1000 / ns.VIEWS.azeroth.size.w
+	local function bounds(file)
+		local x0, y0, x1, y1, n = math.huge, math.huge, -math.huge, -math.huge, 0
+		local function walk(r)
+			if r.kind == "Texture" and r:IsVisible() and r.cell and type(r.path) == "string"
+				and r.path:match("\\" .. file .. "\\" .. file .. "%d+$") then
+				n = n + 1
+				x0, y0 = math.min(x0, r.cell[1]), math.min(y0, r.cell[2])
+				x1, y1 = math.max(x1, r.cell[3]), math.max(y1, r.cell[4])
+			end
+			for _, c in ipairs(r.children) do walk(c) end
+		end
+		walk(StrataFrame)
+		return n, x0, y0, x1, y1
+	end
+	-- Duskwood : le rectangle de ses 13 morceaux
+	local bx0, by0, bx1, by1 = 1002, 668, 0, 0
+	for _, o in ipairs(ns.Overlays.Duskwood) do
+		bx0, by0 = math.min(bx0, o[4]), math.min(by0, o[5])
+		bx1, by1 = math.max(bx1, o[4] + o[2]), math.max(by1, o[5] + o[3])
+	end
+	local _, dx, dy = ns.ToView(2, "Duskwood", 0.5, 0.5)
+	ns.view.Center(dx * k, dy * k, 6)
+	tick(0.3)
+	local n, x0, y0, x1, y1 = bounds("Duskwood")
+	check(n > 0 and x0 >= bx0 and y0 >= by0 and x1 <= bx1 and y1 <= by1,
+		format("fond du Bois de la Pénombre dans le rectangle de ses morceaux (%d-%d, %d-%d)", x0, x1, y0, y1))
+	-- Hurlevent : son plan, sans le blason peint à gauche
+	local _, sx, sy = ns.ToView(2, "Stormwind", 0.5, 0.5)
+	ns.view.Center(sx * k, sy * k, 0.6 * ns.view.Size() / (ns.Zones[2].zones.Stormwind[1] * k))
+	tick(0.3)
+	n, x0, y0, x1, y1 = bounds("Stormwind")
+	check(n > 0 and x0 >= 170 and x1 <= 900, format("fond de Hurlevent limité à son plan (%d-%d)", x0, x1))
 	ns.Rebuild()
 	Strata_Toggle()
 end

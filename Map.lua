@@ -231,7 +231,21 @@ end
 local FRAME_TOLERANCE = 2        -- px de la carte : un morceau à moins de 2 px du bord le touche
 local FRAME_BAND = 32            -- px : le bord déchiré et son ombre
 local CORNER_BAND = 128          -- px : un morceau dans un coin d'une carte du Norfendre (ornements)
-local CITY_BAND = 48             -- px : le cadre de parchemin d'une ville, sans toucher ses noms
+
+-- Fond d'une zone ou d'une ville, comme OpenMap qui ne le montre que sur son territoire (masques) :
+-- sans masques, il est limité au rectangle de son territoire, avec un bord fin adouci. Le cadre,
+-- les ornements, la mer et les noms des zones voisines que la carte de Blizzard peint autour
+-- tombent dehors. Zone : le rectangle qui englobe tous ses morceaux (Data/Overlays.lua), qui
+-- couvrent son territoire. Ville (pas de morceaux) : son plan, relevé sur sa carte (px de la
+-- carte, 1002 x 668), sans les blasons et emblèmes peints à côté.
+local BASE_BAND = 48             -- px : bord adouci du fond
+local BASE_SLICES = 4            -- tranches d'un coin : paliers de 25 %
+local CITY_PLAN = {
+	Stormwind = { 170, 30, 900, 650 }, Ironforge = { 80, 10, 900, 640 }, Darnassis = { 40, 10, 930, 640 },
+	TheExodar = { 200, 10, 830, 650 }, Ogrimmar = { 90, 20, 860, 630 }, Undercity = { 130, 20, 910, 600 },
+	ThunderBluff = { 110, 20, 830, 600 }, SilvermoonCity = { 20, 20, 990, 650 }, ShattrathCity = { 80, 20, 810, 660 },
+	Dalaran = { 40, 30, 840, 640 },
+}
 
 -- Les côtés d'un morceau qui touchent le cadre de la carte, et la largeur du bord adouci.
 function ns.FrameBand(o, c)
@@ -264,6 +278,86 @@ end
 -- puissance de 2), avec un bord adouci de band px sur les côtés demandés (sides). Un coin (deux
 -- côtés) est coupé en deux tranches, en dégradé vertical à la transparence horizontale de son
 -- côté extérieur ; une pièce entièrement transparente n'est pas créée.
+
+-- Le fond d'une carte limité au rectangle (x0, y0) - (x1, y1), en px de la carte, avec un bord
+-- adouci de BASE_BAND px tout autour. Les coins sont coupés en BASE_SLICES tranches.
+local function RectCells(x0, y0, x1, y1)
+	local bx, by = min(BASE_BAND, (x1 - x0) / 3), min(BASE_BAND, (y1 - y0) / 3)
+	-- Colonnes : bords des tuiles et du bord adouci ; les rangées des coins (bandes du haut et du
+	-- bas) ont en plus les tranches des coins.
+	local xs, ys = { x0, x1, x0 + bx, x1 - bx }, { y0, y1, y0 + by, y1 - by }
+	for k = 1, 3 do
+		if 256 * k > x0 and 256 * k < x1 then xs[#xs + 1] = 256 * k end
+	end
+	for j = 1, 2 do
+		if 256 * j > y0 and 256 * j < y1 then ys[#ys + 1] = 256 * j end
+	end
+	local xsCorner = { unpack(xs) }
+	for i = 1, BASE_SLICES - 1 do
+		xsCorner[#xsCorner + 1], xsCorner[#xsCorner + 2] = x0 + bx * i / BASE_SLICES, x1 - bx * i / BASE_SLICES
+	end
+	xs, xsCorner, ys = SortUnique(xs), SortUnique(xsCorner), SortUnique(ys)
+	local function FX(x) return min(1, (x - x0) / bx, (x1 - x) / bx) end
+	local function FY(y) return min(1, (y - y0) / by, (y1 - y) / by) end
+	local cells = {}
+	for r = 1, #ys - 1 do
+		local ya, yb = ys[r], ys[r + 1]
+		local j = floor(ya / 256)
+		local ty = 256 * j
+		local inY = yb <= y0 + by + 1e-6 or ya >= y1 - by - 1e-6
+		local cols = inY and xsCorner or xs
+		for c = 1, #cols - 1 do
+			local xa, xb = cols[c], cols[c + 1]
+			local k = floor(xa / 256)
+			local tx = 256 * k
+			local inLeft = xb <= x0 + bx + 1e-6
+			local inX = inLeft or xa >= x1 - bx - 1e-6
+			local fade
+			if inX and inY then
+				local f = inLeft and FX(xa) or FX(xb)
+				fade = { "VERTICAL", f * FY(yb), f * FY(ya) }
+			elseif inX then
+				fade = { "HORIZONTAL", FX(xa), FX(xb) }
+			elseif inY then
+				fade = { "VERTICAL", FY(yb), FY(ya) }
+			else
+				fade = { "HORIZONTAL", 1, 1 }
+			end
+			if not (fade[2] == 0 and fade[3] == 0) then
+				-- (demi-texel de marge au bord d'un fichier ou de la partie utile de la carte)
+				local tEnd, vEnd = min(tx + 256, MAP_W), min(ty + 256, MAP_H)
+				cells[#cells + 1] = {
+					xa, ya, xb, yb,
+					tile = j * 4 + k + 1,
+					u0 = (xa - tx + (xa == tx and 0.5 or 0)) / 256, u1 = (xb - tx - (xb == tEnd and 0.5 or 0)) / 256,
+					v0 = (ya - ty + (ya == ty and 0.5 or 0)) / 256, v1 = (yb - ty - (yb == vEnd and 0.5 or 0)) / 256,
+					fade = fade,
+				}
+			end
+		end
+	end
+	return cells
+end
+
+-- Le découpage du fond d'une zone ou d'une ville (calculé une fois par carte).
+local baseCells = {}
+local function BaseCells(file, city)
+	if baseCells[file] == nil then
+		local r = city and CITY_PLAN[file]
+		if not r and not city and ns.Overlays[file] then
+			local x0, y0, x1, y1 = MAP_W, MAP_H, 0, 0
+			for _, o in ipairs(ns.Overlays[file]) do
+				x0, y0 = min(x0, o[4]), min(y0, o[5])
+				x1, y1 = max(x1, o[4] + o[2]), max(y1, o[5] + o[3])
+			end
+			r = { max(0, x0), max(0, y0), min(MAP_W, x1), min(MAP_H, y1) }
+		end
+		-- (sans territoire connu : la carte entière, au bord large)
+		baseCells[file] = r and RectCells(r[1], r[2], r[3], r[4]) or false
+	end
+	return baseCells[file] or GRID.feather
+end
+
 local function PieceCells(tw, th, sides, band)
 	local wide, tall = ceil(tw / 256), ceil(th / 256)
 	local bx, by = min(band, tw / 3), min(band, th / 3)
@@ -484,13 +578,8 @@ end
 local function LoadZone(e)
 	local L = V.layers
 	e.base = {}
-	if e.city then
-		-- (bord fin : le dessin d'une ville remplit presque toute sa carte, noms compris)
-		GRID.city = GRID.city or PieceCells(MAP_W, MAP_H, { left = true, right = true, top = true, bottom = true }, CITY_BAND)
-		AddCells(e.base, L.city, GRID.city, e.info.prefix, e.x, e.y, e.w / MAP_W, e.h / MAP_H)
-	else
-		AddMapTiles(e.base, L.base[e.depth], e.info.prefix, e.x, e.y, e.w, e.h, true)
-	end
+	AddCells(e.base, e.city and L.city or L.base[e.depth], BaseCells(e.file, e.city), e.info.prefix,
+		e.x, e.y, e.w / MAP_W, e.h / MAP_H)
 	e.over = {}
 	e.reveal = not ns.db.fog
 	AddOverlays(e.over, L.over, e.reveal and Revealed(e.info) or e.info.overlays, e.info.c, e.x, e.y, e.w, e.h)
