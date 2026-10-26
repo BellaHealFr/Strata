@@ -261,7 +261,7 @@ end
 
 local function StartPhase(b, i)
 	b.index, b.t, b.frames, b.warm = i, 0, 0, nil
-	b.peak = stats.textures
+	b.peak = stats.files
 	ResetWindow()
 	local phase = PHASES[i]
 	if phase.setup then phase.setup(b) end
@@ -282,12 +282,12 @@ end
 driver:SetScript("OnUpdate", function(self, elapsed)
 	local b = bench
 	b.t, b.frames = b.t + elapsed, b.frames + 1
-	if stats.textures > b.peak then b.peak = stats.textures end
+	if stats.files > b.peak then b.peak = stats.files end
 	local phase = PHASES[b.index]
 	if phase.warmup and not b.warm then
 		if b.t < phase.warmup then return end
 		-- Fin de l'attente : la mesure de la phase commence ici.
-		b.warm, b.t, b.frames, b.peak = true, 0, 0, stats.textures
+		b.warm, b.t, b.frames, b.peak = true, 0, 0, stats.files
 		ResetWindow()
 		return
 	end

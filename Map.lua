@@ -12,6 +12,8 @@
 --   over  : les morceaux découverts de chaque zone (GetMapOverlayInfo)
 --   city  : les villes, entièrement peintes, au-dessus de leurs voisines, une fois qu'elles
 --           remplissent une part de la vue (comme OpenMap : avant, la zone autour les dessine)
+--   Les fonds de zone et de ville ont un bord adouci (dégradé de transparence) : leurs rectangles
+--   ne laissent pas de ligne sur leurs voisines.
 --   base a un cadre par profondeur : le fond d'une zone (un rectangle opaque) passe au-dessus
 --   des zones plus grandes qu'elle touche. Le client 3.3.5 n'a pas de sous-niveau de dessin, et
 --   dans un même cadre l'ordre de textures réutilisées n'est pas garanti. Les morceaux
@@ -54,7 +56,7 @@ local hidden = 0           -- textures des zones cachées mais encore chargées 
 
 -- Ce que la mesure (Bench.lua) lit. Le décompte des textures coûte une addition par texture ;
 -- le chronométrage des images ne tourne que si ns.measuring est vrai (compteur ou bench).
-ns.stats = { textures = 0, zones = 0, frames = 0, ms = 0, worst = 0, layersMs = 0 }
+ns.stats = { textures = 0, files = 0, zones = 0, frames = 0, ms = 0, worst = 0, layersMs = 0 }
 local stats = ns.stats
 
 --------------------------------------------------------------------------------
@@ -70,7 +72,31 @@ local function Acquire(layer)
 	return tex
 end
 
+-- Fichiers de carte chargés : plusieurs morceaux peuvent partager une tuile, que le client ne
+-- charge qu'une fois. stats.files compte les fichiers (la mémoire), stats.textures les morceaux.
+local fileRefs = {}
+
+local function SetFile(tex, path)
+	tex.file = path
+	local n = fileRefs[path] or 0
+	if n == 0 then stats.files = stats.files + 1 end
+	fileRefs[path] = n + 1
+	tex:SetTexture(path)
+end
+
 local function Release(layer, tex)
+	local path = tex.file
+	if path then
+		local n = fileRefs[path] - 1
+		if n == 0 then
+			fileRefs[path] = nil
+			stats.files = stats.files - 1
+		else
+			fileRefs[path] = n
+		end
+		tex.file = nil
+	end
+	tex.cell, tex.fade = nil, nil
 	tex:SetTexture(nil)
 	tex:Hide()
 	tex:ClearAllPoints()
@@ -81,9 +107,9 @@ end
 -- Une tuile d'une grille : la première au coin (x, y) de la couche, les autres accrochées au bord
 -- de leur voisine de gauche, ou de celle du dessus en début de rangée, comme WorldMapDetailTile2..12 :
 -- deux voisines partagent exactement le même bord, sans joint d'arrondi au zoom.
--- Partie utile du fichier : pw x ph texels sur fw x fh, avec un demi-texel de marge sur chaque
--- bord, pour que le filtrage ne lise ni le bord opposé du fichier ni le vide au-delà.
-local function PlaceTile(tex, layer, left, above, x, y, w, h, pw, ph, fw, fh)
+-- (u0, u1, v0, v1) : la partie du fichier affichée, avec un demi-texel de marge au bord d'un
+-- fichier, pour que le filtrage ne lise ni le bord opposé du fichier ni le vide au-delà.
+local function PlaceTile(tex, layer, left, above, x, y, w, h, u0, u1, v0, v1)
 	tex:ClearAllPoints()
 	if left then
 		tex:SetPoint("TOPLEFT", left, "TOPRIGHT")
@@ -94,22 +120,88 @@ local function PlaceTile(tex, layer, left, above, x, y, w, h, pw, ph, fw, fh)
 	end
 	tex:SetWidth(w)
 	tex:SetHeight(h)
-	tex:SetTexCoord(0.5 / fw, (pw - 0.5) / fw, 0.5 / fh, (ph - 0.5) / fh)
+	tex:SetTexCoord(u0, u1, v0, v1)
 end
 
--- Les 12 tuiles d'une carte (prefix1 .. prefix12) sur un rectangle en unités.
-local function AddMapTiles(list, layer, prefix, rx, ry, rw, rh)
+-- Bord adouci, comme le masque « feather » d'OpenMap (la 3.3.5 n'a pas de masques) : la colonne
+-- et la rangée de tuiles du bord passent de l'opaque au transparent par les couleurs des sommets
+-- (SetGradientAlpha). Les cartes de Blizzard débordent sur leurs voisines (et, au Norfendre,
+-- portent un cadre ornementé dans les coins) : ce bord n'efface que ce débord.
+-- Un coin demande les deux sens : il est découpé en CORNER_SLICES tranches verticales, chacune en
+-- dégradé vertical, à la transparence horizontale de son côté extérieur (0 au bord de la carte).
+local CORNER_SLICES = 4
+
+-- Transparence horizontale et verticale en un point de la carte (px) : 0 au bord, 1 au cœur.
+local function FadeX(x)
+	if x <= 256 then return x / 256 end
+	if x >= 768 then return (MAP_W - x) / (MAP_W - 768) end
+	return 1
+end
+local function FadeY(y)
+	if y <= 256 then return y / 256 end
+	if y >= 512 then return (MAP_H - y) / (MAP_H - 512) end
+	return 1
+end
+
+-- Le dégradé d'un morceau : { orientation, min, max }. VERTICAL va du bas (min) au haut (max).
+local function Fade(col, row, x0, x1, y0, y1, corner)
+	if corner then
+		local f = col == 0 and FadeX(x0) or FadeX(x1)
+		return { "VERTICAL", f * FadeY(y1), f * FadeY(y0) }
+	elseif col == 0 or col == 3 then
+		return { "HORIZONTAL", FadeX(x0), FadeX(x1) }
+	elseif row == 0 or row == 2 then
+		return { "VERTICAL", FadeY(y1), FadeY(y0) }
+	end
+	return { "HORIZONTAL", 1, 1 }
+end
+
+-- Le découpage d'une carte en morceaux, le même pour toutes : calculé une fois. Pour chaque
+-- morceau : sa place (cell, en px de la carte), sa tuile, ses coordonnées dans le fichier, son
+-- dégradé, et s'il commence une rangée. GRID.plain : une tuile par morceau ; GRID.feather : bord
+-- adouci, les coins en tranches.
+local GRID = {}
+for _, feather in ipairs({ false, true }) do
+	local cells = {}
+	for row = 0, 2 do
+		local ty = row * 256
+		local th = min(256, MAP_H - ty)
+		for col = 0, 3 do
+			local tx = col * 256
+			local tw = min(256, MAP_W - tx)
+			local corner = feather and (col == 0 or col == 3) and (row == 0 or row == 2)
+			local n = corner and CORNER_SLICES or 1
+			for s = 1, n do
+				local x0, x1 = tx + tw * (s - 1) / n, tx + tw * s / n
+				cells[#cells + 1] = {
+					x0, ty, x1, ty + th,
+					tile = row * 4 + col + 1,
+					rowStart = col == 0 and s == 1,
+					u0 = (x0 - tx + (s == 1 and 0.5 or 0)) / 256, u1 = (x1 - tx - (s == n and 0.5 or 0)) / 256,
+					v0 = 0.5 / 256, v1 = (th - 0.5) / 256,
+					fade = feather and Fade(col, row, x0, x1, ty, ty + th, corner) or nil,
+				}
+			end
+		end
+	end
+	GRID[feather and "feather" or "plain"] = cells
+end
+
+-- Les 12 tuiles d'une carte (prefix1 .. prefix12) sur un rectangle en unités ; feather : bord
+-- adouci. Chaque morceau garde sa place sur la carte (tex.cell, en px) et son dégradé (tex.fade).
+local function AddMapTiles(list, layer, prefix, rx, ry, rw, rh, feather)
 	local sx, sy = rw / MAP_W, rh / MAP_H
-	local first = #list
-	for i = 1, 12 do
-		local col, row = (i - 1) % 4, floor((i - 1) / 4)
-		local px, py = col * 256, row * 256
-		local pw, ph = min(256, MAP_W - px), min(256, MAP_H - py)
+	local left, rowStart
+	for _, cell in ipairs(feather and GRID.feather or GRID.plain) do
 		local tex = Acquire(layer)
-		PlaceTile(tex, layer, col > 0 and list[first + i - 1], row > 0 and list[first + i - 4],
-			rx, ry, pw * sx, ph * sy, pw, ph, 256, 256)
-		tex:SetTexture(prefix .. i)
+		if cell.rowStart then left = nil end
+		PlaceTile(tex, layer, left, not left and rowStart, rx, ry, (cell[3] - cell[1]) * sx, (cell[4] - cell[2]) * sy,
+			cell.u0, cell.u1, cell.v0, cell.v1)
+		if cell.rowStart then rowStart = tex end
+		tex.cell, tex.fade = cell, cell.fade
+		SetFile(tex, prefix .. cell.tile)
 		list[#list + 1] = tex
+		left = tex
 	end
 end
 
@@ -144,8 +236,9 @@ local function AddOverlays(list, layer, overlays, rx, ry, rw, rh)
 				local tex = Acquire(layer)
 				local n = (j - 1) * wide + k
 				PlaceTile(tex, layer, k > 1 and list[first + n - 1], j > 1 and list[first + n - wide],
-					rx + offX * sx, ry + offY * sy, pw * sx, ph * sy, pw, ph, fw, fh)
-				tex:SetTexture(name .. n)
+					rx + offX * sx, ry + offY * sy, pw * sx, ph * sy,
+					0.5 / fw, (pw - 0.5) / fw, 0.5 / fh, (ph - 0.5) / fh)
+				SetFile(tex, name .. n)
 				list[#list + 1] = tex
 			end
 		end
@@ -154,6 +247,19 @@ end
 
 local function SetAlphaAll(list, alpha)
 	for i = 1, #list do list[i]:SetAlpha(alpha) end
+end
+
+-- La transparence d'un fond à bord adouci passe par son dégradé (les couleurs des sommets).
+local function SetFadeAll(list, alpha)
+	for i = 1, #list do
+		local tex = list[i]
+		local f = tex.fade
+		if f then
+			tex:SetGradientAlpha(f[1], 1, 1, 1, f[2] * alpha, 1, 1, 1, f[3] * alpha)
+		else
+			tex:SetAlpha(alpha)
+		end
+	end
 end
 
 local function ShowAll(list, show)
@@ -259,10 +365,10 @@ end
 local function LoadZone(e)
 	local L = V.layers
 	e.base = {}
-	AddMapTiles(e.base, e.city and L.city or L.base[e.depth], e.info.prefix, e.x, e.y, e.w, e.h)
+	AddMapTiles(e.base, e.city and L.city or L.base[e.depth], e.info.prefix, e.x, e.y, e.w, e.h, true)
 	e.over = {}
 	AddOverlays(e.over, L.over, e.info.overlays, e.x, e.y, e.w, e.h)
-	e.loaded = true
+	e.loaded, e.alpha = true, nil
 	stats.zones = stats.zones + 1
 end
 
@@ -333,7 +439,9 @@ end
 -- Centre la vue sur un point du canevas.
 local function CenterOn(x, y, z)
 	local vw, vh = ViewSize()
-	z = z or zoom
+	-- Le zoom borné avant de placer : sinon une petite zone (Dalaran) demandée au-delà du zoom
+	-- maximal serait placée pour ce zoom-là, puis décentrée quand SetView le borne.
+	z = max(ZoomMin(), min(ZOOM_MAX, z or zoom))
 	SetView(z, vw / 2 - x * z, vh / 2 - y * z)
 end
 
@@ -387,8 +495,11 @@ local function UpdateLayers()
 			e.hiddenAt = nil
 			ShowAll(e.base, fog or e.city)
 			ShowAll(e.over, true)
-			SetAlphaAll(e.base, alpha)
-			SetAlphaAll(e.over, alpha)
+			if e.alpha ~= alpha then
+				SetFadeAll(e.base, alpha)
+				SetAlphaAll(e.over, alpha)
+				e.alpha = alpha
+			end
 		elseif e.loaded and not e.hiddenAt then
 			ShowAll(e.base, false)
 			ShowAll(e.over, false)

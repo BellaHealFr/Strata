@@ -523,12 +523,14 @@ do
 	local tiles = zoneTiles().Elwynn
 	check(tiles and tiles[1] and tiles[12], "Forêt d'Elwynn affichée")
 	-- Joints : chaque tuile accrochée au bord de la précédente, comme WorldMapDetailTile2..12.
-	check(tiles[2].point.rel == tiles[1] and tiles[2].point.relPoint == "TOPRIGHT"
-		and tiles[5].point.rel == tiles[1] and tiles[5].point.relPoint == "BOTTOMLEFT"
-		and tiles[12].point.rel == tiles[11],
+	-- (les tuiles des coins sont découpées en tranches, #47 : on reconnaît la voisine à son fichier)
+	local function relFile(t) return t.point.rel and t.point.rel.path end
+	check(relFile(tiles[2]) == tiles[1].path and tiles[2].point.relPoint == "TOPRIGHT"
+		and relFile(tiles[5]) == tiles[1].path and tiles[5].point.rel.cell[1] == 0 and tiles[5].point.relPoint == "BOTTOMLEFT"
+		and tiles[6].point.rel == tiles[5] and tiles[6].point.relPoint == "TOPRIGHT",
 		"tuiles accrochées les unes aux autres (pas de joint d'arrondi)")
 	-- Et aucune ne lit le bord de sa voisine : demi-texel de marge.
-	local tc = tiles[1].texcoord
+	local tc = tiles[2].texcoord
 	check(tc[1] > 0 and tc[1] < 1 / 256 and tc[2] < 1 and tc[2] > 255 / 256, "demi-texel de marge sur les bords des tuiles")
 
 	-- Ordre : une zone passe au-dessus des zones plus grandes qu'elle touche, toujours.
@@ -572,6 +574,96 @@ do
 	centerOnZone("Stormwind", 0.6 * vw / sw)
 	local city = zoneTiles().Stormwind
 	check(city and city[1] and level(city[1]) > minOver, "Hurlevent à 60 % de la vue : sa carte, au-dessus des zones")
+	ns.Rebuild()
+	Strata_Toggle()
+end
+
+-- #47 : bord adouci des cartes de zone et de ville (comme le masque « feather » d'OpenMap)
+do
+	if not StrataFrame:IsShown() then Strata_Toggle() end
+	ns.Rebuild()
+	local k = 1000 / ns.VIEWS.azeroth.size.w
+	local function centerOn(c, file, zoom)
+		local _, x, y = ns.ToView(c, file, 0.5, 0.5)
+		ns.view.Center(x * k, y * k, zoom)
+		tick(0.3)
+	end
+	-- Les morceaux visibles du fond d'une carte, avec leur place (tex.cell, en px de la carte).
+	local function quads(file)
+		local out = {}
+		local function walk(r)
+			if r.kind == "Texture" and r:IsVisible() and r.cell and type(r.path) == "string"
+				and r.path:match("^Interface\\WorldMap\\" .. file .. "\\" .. file .. "%d+$") then
+				out[#out + 1] = r
+			end
+			for _, c in ipairs(r.children) do walk(c) end
+		end
+		walk(StrataFrame)
+		return out
+	end
+	-- Transparence aux quatre coins d'un morceau : haut-gauche, haut-droit, bas-gauche, bas-droit.
+	local function corners(t)
+		local g = t.gradient
+		if g[1] == "HORIZONTAL" then return g[2], g[3], g[2], g[3] end
+		return g[3], g[3], g[2], g[2]
+	end
+	local function feathered(file, what)
+		local q = quads(file)
+		local bad, inner = {}, 0
+		for _, t in ipairs(q) do
+			local c = t.cell
+			local tl, tr, bl, br = corners(t)
+			if (c[1] == 0 and (tl > 0 or bl > 0)) or (c[3] == 1002 and (tr > 0 or br > 0))
+				or (c[2] == 0 and (tl > 0 or tr > 0)) or (c[4] == 668 and (bl > 0 or br > 0)) then
+				bad[#bad + 1] = format("%d,%d", c[1], c[2])
+			end
+			if c[1] >= 256 and c[3] <= 768 and c[2] >= 256 and c[4] <= 512 and tl == 1 and br == 1 then inner = inner + 1 end
+		end
+		check(#q >= 12 and #bad == 0 and inner == 2, format("%s : bord transparent sur tout le tour, cœur opaque (%d morceaux) %s", what, #q, table.concat(bad, " ")))
+	end
+	centerOn(2, "Elwynn", 6)
+	feathered("Elwynn", "Forêt d'Elwynn")
+	-- Pas de saut entre deux morceaux voisins d'une même rangée (même transparence au bord commun).
+	do
+		local q, jumps = quads("Elwynn"), 0
+		for _, a in ipairs(q) do
+			for _, b in ipairs(q) do
+				if a.cell[3] == b.cell[1] and a.cell[2] == b.cell[2] then
+					local _, atr, _, abr = corners(a)
+					local btl, _, bbl = corners(b)
+					if math.abs(atr - btl) > 0.26 or math.abs(abr - bbl) > 0.26 then jumps = jumps + 1 end
+				end
+			end
+		end
+		check(jumps == 0, "pas de saut de transparence entre deux morceaux voisins")
+	end
+	-- Le fondu d'apparition de la zone passe par le dégradé : cœur à la transparence de la zone.
+	-- (une zone paraît de 220 à 352 px de large : 286 px, à mi-chemin)
+	centerOn(2, "Elwynn", 286 / (ns.Zones[2].zones.Elwynn[1] * k))
+	local half
+	for _, t in ipairs(quads("Elwynn")) do
+		if t.cell[1] == 256 and t.cell[2] == 256 then half = t.gradient[2] end
+	end
+	check(half and half > 0 and half < 1, "zone en cours d'apparition : cœur à moitié transparent (" .. tostring(half) .. ")")
+	-- Ville : Dalaran, cadre de parchemin et bannière effacés au bord.
+	centerOn(4, "Dalaran", 0.8 * ns.view.Size() / (ns.Zones[4].zones.Dalaran[1] * k))
+	do
+		local _, _, cx, cy = ns.view.Get()
+		local _, dx, dy = ns.ToView(4, "Dalaran", 0.5, 0.5)
+		check(math.abs(cx - dx * k) < 0.5 and math.abs(cy - dy * k) < 0.5, "centrée sur Dalaran malgré un zoom demandé au-delà du maximum")
+	end
+	feathered("Dalaran", "Dalaran")
+	-- Mémoire : les morceaux d'une même tuile partagent un fichier, chargé une seule fois.
+	local files, paths = 0, {}
+	local function walk(r)
+		if r.kind == "Texture" and type(r.path) == "string" and not paths[r.path] and r.path:find("^Interface\\WorldMap\\%w+\\") then
+			paths[r.path] = true
+			files = files + 1
+		end
+		for _, c in ipairs(r.children) do walk(c) end
+	end
+	walk(StrataFrame)
+	check(ns.stats.files == files, format("fichiers de carte chargés comptés une fois chacun (%d / %d)", ns.stats.files, files))
 	ns.Rebuild()
 	Strata_Toggle()
 end
