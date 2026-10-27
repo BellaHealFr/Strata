@@ -1006,3 +1006,53 @@ do
 	ns.Rebuild()
 	Strata_Toggle()
 end
+
+-- #66 : la bannière d'une ville sur la carte de sa zone est dessinée à part et s'efface quand la
+-- ville paraît, comme dans OpenMap : plus de « …NERRE » coupé par le plan des Pitons-du-Tonnerre.
+do
+	if not StrataFrame:IsShown() then Strata_Toggle() end
+	SlashCmdList.STRATA("brouillard")
+	ns.Rebuild()
+	local k = 1000 / ns.VIEWS.azeroth.size.w
+	local b = ns.BANNERS.Mulgore
+	local origin = {}
+	for _, o in ipairs(ns.Overlays.Mulgore) do origin[o[1]] = o end
+	-- Pièces des morceaux de Mulgore dans le rectangle de la bannière : visibles, et la plus opaque.
+	local function banner()
+		local n, inside, top = 0, 0, 0
+		local function walk(r)
+			if r.kind == "Texture" and r.cell and type(r.path) == "string" then
+				local name = r.path:match("^Interface\\WorldMap\\Mulgore\\(%u+)%d+$")
+				local o = name and origin[name]
+				if o then
+					local mx, my = o[4] + (r.cell[1] + r.cell[3]) / 2, o[5] + (r.cell[2] + r.cell[4]) / 2
+					if mx > b[2] and mx < b[4] and my > b[3] and my < b[5] then
+						inside = inside + 1
+						if r:IsVisible() then
+							n = n + 1
+							local g = r.gradient
+							top = math.max(top, g and math.max(g[2], g[3]) or 1)
+						end
+					end
+				end
+			end
+			for _, ch in ipairs(r.children) do walk(ch) end
+		end
+		walk(StrataFrame)
+		return n, inside, top
+	end
+	local Z = ns.Zones[1].zones
+	local _, mx, my = ns.ToView(1, "Mulgore", 0.5, 0.5)
+	ns.view.Center(mx * k, my * k, 0.5 * ns.view.Size() / (Z.Mulgore[1] * k))
+	tick(0.3)
+	local n, inside, top = banner()
+	check(n > 0 and top > 0, format("Mulgore vue entière : bannière des Pitons-du-Tonnerre dessinée (%d pièces)", n))
+	local _, tx, ty = ns.ToView(1, "ThunderBluff", 0.5, 0.5)
+	ns.view.Center(tx * k, ty * k, 0.6 * ns.view.Size() / (Z.ThunderBluff[1] * k))
+	tick(0.3)
+	n, inside = banner()
+	check(inside > 0 and n == 0, format("Pitons-du-Tonnerre affichés : la bannière de Mulgore effacée (%d visibles sur %d)", n, inside))
+	SlashCmdList.STRATA("brouillard")
+	ns.Rebuild()
+	Strata_Toggle()
+end
