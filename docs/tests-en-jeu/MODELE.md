@@ -52,7 +52,7 @@ Commit testé :
 
 ## Performances en jeu
 
-<!-- À partir de la 0.2 : résultats de /strata bench, objectifs dans docs/FEUILLE-DE-ROUTE.md. -->
+<!-- À partir de la 0.2 : résultats de /strata bench, objectifs dans Bench.lua. -->
 
 | Mesure | Résultat | Objectif |
 |---|---|---|

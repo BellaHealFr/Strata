@@ -191,7 +191,7 @@ La fenêtre a un fond et une bordure de boîte de dialogue standard. Elle se dé
 | Icônes | jusqu'à 40 positions de raid toutes les 30 ms |
 | Mémoire | les zones visibles, plus au plus 160 textures cachées pendant 8 s ; carte fermée : 60 tuiles |
 
-Ces coûts sont tenus par les budgets du banc (section 13). Pistes suivies dans la [feuille de route](FEUILLE-DE-ROUTE.md) : saccade possible à la première ouverture (#8).
+Ces coûts sont tenus par les budgets du banc (section 13). Piste suivie dans les tickets : saccade possible à la première ouverture (#8).
 
 ## 13. Vérification
 
@@ -230,7 +230,7 @@ Le banc compte le travail du code, mais ne voit ni le rendu ni la mémoire réel
 | Tour d'Azeroth | 8 s | 20 points de la carte, 0,4 s chacun, zoom 6 |
 | Dézoomé | 2 s | le monde entier |
 
-Pour chaque phase : images par seconde, temps de Strata par image (moyenne et pire) et pic de textures chargées. Puis la durée de la lecture des cartes à la première ouverture de la session (`ns.Scan`, chronométrée à chaque fois), la mémoire Lua de l'addon et la mémoire Lua totale du jeu (`collectgarbage("count")`), et la comparaison avec les [objectifs de performance en jeu](FEUILLE-DE-ROUTE.md#objectifs-de-performance-en-jeu). Certains clients renvoient 0 pour la mémoire d'un addon : elle est alors indiquée « indisponible » et l'objectif « à revoir », jamais « ok ». La vue d'avant est rétablie, les résultats s'affichent dans une boîte de texte prête à copier dans un rapport de test, et sont enregistrés (`StrataDB.lastBench`).
+Pour chaque phase : images par seconde, temps de Strata par image (moyenne et pire) et pic de textures chargées. Puis la durée de la lecture des cartes à la première ouverture de la session (`ns.Scan`, chronométrée à chaque fois), la mémoire Lua de l'addon et la mémoire Lua totale du jeu (`collectgarbage("count")`), et la comparaison avec les objectifs de performance en jeu (`Bench.lua`). Certains clients renvoient 0 pour la mémoire d'un addon : elle est alors indiquée « indisponible » et l'objectif « à revoir », jamais « ok ». La vue d'avant est rétablie, les résultats s'affichent dans une boîte de texte prête à copier dans un rapport de test, et sont enregistrés (`StrataDB.lastBench`).
 
 ## 15. Limites connues
 

@@ -13,7 +13,7 @@ local _, ns = ...
 local L = ns.L
 local stats = ns.stats
 
--- Objectifs de docs/FEUILLE-DE-ROUTE.md (« Objectifs de performance en jeu »).
+-- Objectifs de performance en jeu, comparés aux mesures de /strata bench.
 local GOAL_FPS_DROP = 0.10   -- images par seconde carte ouverte : au plus 10 % de moins que fermée
 local GOAL_PAN_AVG = 1       -- ms de Strata par image en déplacement, en moyenne
 local GOAL_PAN_WORST = 5     -- ms, pire image
