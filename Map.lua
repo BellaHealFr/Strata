@@ -468,7 +468,8 @@ local function Cut(xs, YsFor, Alpha, Emit)
 			elseif Near(tl, bl) and Near(tr, br) then
 				Emit(xa, ya, xb, yb, { "HORIZONTAL", tl, tr })
 			elseif xb - xa < 16 then
-				Emit(xa, ya, xb, yb, { "VERTICAL", min(bl, br), min(tl, tr) })
+				local top, bottom = min(tl, tr), min(bl, br)
+				if top > 0 or bottom > 0 then Emit(xa, ya, xb, yb, { "VERTICAL", bottom, top }) end
 			else
 				for s = 1, CORNER_SLICES do
 					local sa, sb = xa + (xb - xa) * (s - 1) / CORNER_SLICES, xa + (xb - xa) * s / CORNER_SLICES
