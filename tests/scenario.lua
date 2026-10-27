@@ -542,9 +542,25 @@ do
 		end
 		check(linked > 10 and loose == 0, format("tuiles accrochées les unes aux autres (pas de joint d'arrondi) : %d", linked))
 	end
-	-- Et aucune ne lit le bord de sa voisine : demi-texel de marge.
-	local tc = tiles[2].texcoord
-	check(tc[1] > 0 and tc[1] < 1 / 256 and tc[2] < 1 and tc[2] > 255 / 256, "demi-texel de marge sur les bords des tuiles")
+	-- Et aucune ne lit le bord de sa voisine : demi-texel de marge au bord d'un fichier, aucune
+	-- ailleurs (#58 : le fond est découpé à la forme de la zone, pas seulement aux tuiles).
+	do
+		local bad, edges = 0, 0
+		local function walk(r)
+			if r.kind == "Texture" and r:IsVisible() and r.cell and type(r.path) == "string"
+				and r.path:match("Elwynn\\Elwynn%d+$") then
+				local c, tc = r.cell, r.texcoord
+				local tx, ty = math.floor(c[1] / 256) * 256, math.floor(c[2] / 256) * 256
+				local u0 = (c[1] - tx + (c[1] == tx and 0.5 or 0)) / 256
+				local u1 = (c[3] - tx - (c[3] == math.min(tx + 256, 1002) and 0.5 or 0)) / 256
+				if c[1] == tx then edges = edges + 1 end
+				if math.abs(tc[1] - u0) > 1e-6 or math.abs(tc[2] - u1) > 1e-6 then bad = bad + 1 end
+			end
+			for _, ch in ipairs(r.children) do walk(ch) end
+		end
+		walk(StrataFrame)
+		check(edges > 0 and bad == 0, format("demi-texel de marge sur les bords des tuiles (%d bords, %d fautes)", edges, bad))
+	end
 
 	-- Ordre : une zone passe au-dessus des zones plus grandes qu'elle touche, toujours.
 	-- (au zoom 6, une quinzaine de zones du sud des Royaumes de l'Est sont chargées)
@@ -558,7 +574,8 @@ do
 			if a ~= b and not ns.CITIES[a] and not ns.CITIES[b] and za[1] * za[2] > zb[1] * zb[2]
 				and za[3] < zb[3] + zb[1] and zb[3] < za[3] + za[1] and za[4] < zb[4] + zb[2] and zb[4] < za[4] + za[2] then
 				pairsChecked = pairsChecked + 1
-				if not (level(ta[1]) < level(tb[1])) then wrong[#wrong + 1] = b .. " sous " .. a end
+				-- (une tuile quelconque : une zone coupée à sa forme n'a pas toujours la première)
+				if not (level(select(2, next(ta))) < level(select(2, next(tb)))) then wrong[#wrong + 1] = b .. " sous " .. a end
 			end
 		end
 	end
@@ -887,6 +904,67 @@ do
 	tick(0.3)
 	n, x0, y0, x1, y1 = bounds("Stormwind")
 	check(n > 0 and x0 >= 170 and x1 <= 900, format("fond de Hurlevent limité à son plan (%d-%d)", x0, x1))
+	ns.Rebuild()
+	Strata_Toggle()
+end
+
+-- #58 : le fond et les morceaux d'une zone coupés à son territoire réel (Data/Territory.lua, en
+-- escalier de colonnes de 256 px) : le nom « Bois de la Pénombre » et la rive peints sous la
+-- Forêt d'Elwynn ne passent plus sur le Bois de la Pénombre.
+do
+	-- Données : chaque zone dessinée a sa forme, dans sa carte.
+	local bad, count = {}, 0
+	for c = 1, 4 do
+		for file, Z in pairs(ns.Zones[c].zones) do
+			if not Z[5] and not ns.CITIES[file] then
+				count = count + 1
+				local t = ns.Territory[file]
+				local ok = t and t[1] >= 0 and t[1] < t[2] and t[2] <= 1002
+				local cols = 0
+				for k = 3, 6 do
+					local col = t and t[k]
+					if col then
+						cols = cols + 1
+						if not (col[1] >= 0 and col[1] < col[2] and col[2] <= 668) then ok = false end
+					end
+				end
+				if not ok or cols == 0 then bad[#bad + 1] = file end
+			end
+		end
+	end
+	check(count >= 60 and #bad == 0, format("territoire réel de %d zones, dans leur carte %s", count, table.concat(bad, ", ")))
+
+	if not StrataFrame:IsShown() then Strata_Toggle() end
+	SlashCmdList.STRATA("brouillard")
+	ns.Rebuild()
+	local k = 1000 / ns.VIEWS.azeroth.size.w
+	local _, ex, ey = ns.ToView(2, "Elwynn", 0.5, 0.5)
+	ns.view.Center(ex * k, ey * k, 6)
+	tick(0.3)
+	local origin = {}
+	for _, o in ipairs(ns.Overlays.Elwynn) do origin[o[1]] = o end
+	local pieces, below, banner = 0, {}, false
+	local function walk(r)
+		if r.kind == "Texture" and r:IsVisible() and r.cell and type(r.path) == "string" then
+			local c = r.cell
+			local name = r.path:match("^Interface\\WorldMap\\Elwynn\\(%u+)%d+$")
+			local o = name and origin[name]
+			if o then
+				pieces = pieces + 1
+				-- (à l'est de la marche de x = 512 : le terrain d'Elwynn s'arrête à la rive, 595 px)
+				if o[4] + c[1] >= 575 and o[5] + c[4] > 600 then below[#below + 1] = name end
+			elseif r.path:match("^Interface\\WorldMap\\Elwynn\\Elwynn%d+$") then
+				-- la bannière « Hurlevent » (vers x = 100, y = 150) : Hurlevent compte dans Elwynn
+				if c[1] <= 100 and c[3] > 100 and c[2] <= 150 and c[4] > 150 then banner = true end
+			end
+		end
+		for _, ch in ipairs(r.children) do walk(ch) end
+	end
+	walk(StrataFrame)
+	check(pieces > 20 and #below == 0, format("morceaux d'Elwynn coupés à la rive, au-dessus du nom peint « Bois de la Pénombre » (%d pièces) %s",
+		pieces, table.concat(below, ", ")))
+	check(banner, "fond d'Elwynn sous la bannière « Hurlevent » : la ville compte dans sa zone")
+	SlashCmdList.STRATA("brouillard")
 	ns.Rebuild()
 	Strata_Toggle()
 end

@@ -235,9 +235,9 @@ local CORNER_BAND = 128          -- px : un morceau dans un coin d'une carte du 
 -- Fond d'une zone ou d'une ville, comme OpenMap qui ne le montre que sur son territoire (masques) :
 -- sans masques, il est limité au rectangle de son territoire, avec un bord fin adouci. Le cadre,
 -- les ornements, la mer et les noms des zones voisines que la carte de Blizzard peint autour
--- tombent dehors. Zone : le rectangle qui englobe tous ses morceaux (Data/Overlays.lua), qui
--- couvrent son territoire. Ville (pas de morceaux) : son plan, relevé sur sa carte (px de la
--- carte, 1002 x 668), sans les blasons et emblèmes peints à côté.
+-- tombent dehors. Zone : son territoire réel en escalier (Shape, plus bas), ou à défaut le
+-- rectangle qui englobe tous ses morceaux (Data/Overlays.lua). Ville (pas de morceaux) : son
+-- plan, relevé sur sa carte (px de la carte, 1002 x 668), sans les blasons et emblèmes peints à côté.
 local BASE_BAND = 48             -- px : bord adouci du fond
 local BASE_SLICES = 4            -- tranches d'un coin : paliers de 25 %
 local CITY_PLAN = {
@@ -339,21 +339,233 @@ local function RectCells(x0, y0, x1, y1)
 	return cells
 end
 
+-- Le rectangle qui englobe tous les morceaux d'une zone (Data/Overlays.lua), ou nil.
+local function PiecesRect(file)
+	local list = ns.Overlays[file]
+	if not list then return nil end
+	local x0, y0, x1, y1 = MAP_W, MAP_H, 0, 0
+	for _, o in ipairs(list) do
+		x0, y0 = min(x0, o[4]), min(y0, o[5])
+		x1, y1 = max(x1, o[4] + o[2]), max(y1, o[5] + o[3])
+	end
+	return { max(0, x0), max(0, y0), min(MAP_W, x1), min(MAP_H, y1) }
+end
+
+-- Territoire réel d'une zone (Data/Territory.lua, relevé sur le terrain du client) : un escalier
+-- de colonnes de 256 px, celles des tuiles, chacune à l'étendue nord-sud du terrain de la zone,
+-- dans le rectangle de ses morceaux. Le fond et les morceaux y sont coupés, avec un bord adouci
+-- de BASE_BAND px : en haut et en bas de chaque colonne, sur les côtés est et ouest, et sur la
+-- marche entre deux colonnes (la plus haute déborde en fondu sur sa voisine). Le cadre et les
+-- noms des voisines que Blizzard peint au-delà du territoire tombent dehors : sous la Forêt
+-- d'Elwynn, le nom « Bois de la Pénombre » et la rive.
+local shapes = {}
+local function Shape(file)
+	if shapes[file] == nil then
+		local t, r = ns.Territory[file], PiecesRect(file)
+		local s = false
+		if t then
+			local x0, x1 = t[1], t[2]
+			if r then x0, x1 = max(x0, r[1]), min(x1, r[3]) end
+			local cols = {}
+			for k = 1, 4 do
+				local c = t[k + 2]
+				local a, b = max(x0, 256 * (k - 1)), min(x1, 256 * k)
+				if c and a < b then
+					local y0, y1 = c[1], c[2]
+					if r then y0, y1 = max(y0, r[2]), min(y1, r[4]) end
+					local p = cols[#cols]
+					if p and p[2] == a and abs(p[3] - y0) < BASE_BAND and abs(p[4] - y1) < BASE_BAND then
+						-- (presque la même étendue que sa voisine : une seule colonne, sans marche)
+						p[2], p[3], p[4] = b, min(p[3], y0), max(p[4], y1)
+						p[5] = min(BASE_BAND, (p[4] - p[3]) / 3)
+					elseif y0 < y1 then
+						cols[#cols + 1] = { a, b, y0, y1, min(BASE_BAND, (y1 - y0) / 3) }
+					end
+				end
+			end
+			if cols[1] and x0 < x1 then s = { x0 = x0, x1 = x1, bx = min(BASE_BAND, (x1 - x0) / 3), cols = cols } end
+		end
+		shapes[file] = s
+	end
+	return shapes[file] or nil
+end
+
+local function Band(v, a, b, band)
+	return max(0, min(1, (v - a) / band, (b - v) / band))
+end
+
+-- Transparence d'une forme en un point (px de la carte) : 0 dehors, 1 au cœur.
+local function ShapeAlpha(s, x, y)
+	local fx = Band(x, s.x0, s.x1, s.bx)
+	local best = 0
+	if fx > 0 then
+		for _, c in ipairs(s.cols) do
+			local inner = x < c[1] and (x - c[1] + BASE_BAND) / BASE_BAND or x > c[2] and (c[2] + BASE_BAND - x) / BASE_BAND or 1
+			if inner > 0 then best = max(best, min(inner, fx) * Band(y, c[3], c[4], c[5])) end
+		end
+	end
+	return best
+end
+
+-- Bornes d'une forme, décalées de (dx, dy) : en x, et en y pour les colonnes qui touchent [xa, xb].
+local function ShapeXs(s, xs, dx)
+	xs[#xs + 1], xs[#xs + 2], xs[#xs + 3], xs[#xs + 4] = s.x0 - dx, s.x1 - dx, s.x0 + s.bx - dx, s.x1 - s.bx - dx
+	for _, c in ipairs(s.cols) do
+		xs[#xs + 1], xs[#xs + 2], xs[#xs + 3], xs[#xs + 4] = c[1] - dx, c[2] - dx, c[1] - BASE_BAND - dx, c[2] + BASE_BAND - dx
+	end
+end
+local function ShapeYs(s, ys, xa, xb, dx, dy)
+	for _, c in ipairs(s.cols) do
+		if c[1] - BASE_BAND < xb + dx and c[2] + BASE_BAND > xa + dx then
+			ys[#ys + 1], ys[#ys + 2], ys[#ys + 3], ys[#ys + 4] = c[3] - dy, c[4] - dy, c[3] + c[5] - dy, c[4] - c[5] - dy
+		end
+	end
+end
+
+-- Les bornes gardées dans [lo, hi], triées, sans doublon (false : borne absente). snap : une
+-- borne à moins de SNAP px d'une autre est retirée (pas de lamelles) ; lo, hi et les bords des
+-- tuiles (multiples de 256) restent.
+local SNAP = 12
+local function Within(t, lo, hi, snap)
+	local fixed, other = { lo, hi }, {}
+	for _, v in ipairs(t) do
+		if v and v > lo and v < hi then
+			if v % 256 == 0 or not snap then fixed[#fixed + 1] = v else other[#other + 1] = v end
+		end
+	end
+	local out = SortUnique(fixed)
+	if snap then
+		for _, v in ipairs(SortUnique(other)) do
+			local ok = true
+			for _, w in ipairs(out) do
+				if abs(v - w) < SNAP then ok = false break end
+			end
+			if ok then out[#out + 1] = v end
+		end
+		out = SortUnique(out)
+	end
+	return out
+end
+
+local function Near(a, b) return abs(a - b) < 1e-3 end
+
+-- Découpe [0, w] x [0, h] (px) aux bornes xs, et ys(xa, xb) par bande verticale, en morceaux de
+-- transparence linéaire Alpha(x, y) : dégradé vertical ou horizontal ; là où elle change dans les
+-- deux sens (coins, marches), CORNER_SLICES tranches verticales, chacune à la transparence de son
+-- côté le moins opaque. Emit(x0, y0, x1, y1, fade) pour chaque morceau non entièrement
+-- transparent ; fade est nil s'il est opaque.
+local function Cut(xs, YsFor, Alpha, Emit)
+	for i = 1, #xs - 1 do
+		local xa, xb = xs[i], xs[i + 1]
+		local ys = YsFor(xa, xb)
+		for j = 1, #ys - 1 do
+			local ya, yb = ys[j], ys[j + 1]
+			local tl, tr, bl, br = Alpha(xa, ya), Alpha(xb, ya), Alpha(xa, yb), Alpha(xb, yb)
+			if Near(tl, tr) and Near(bl, br) then
+				if not (Near(tl, 0) and Near(bl, 0)) then
+					Emit(xa, ya, xb, yb, not (Near(tl, 1) and Near(bl, 1)) and { "VERTICAL", bl, tl } or nil)
+				end
+			elseif Near(tl, bl) and Near(tr, br) then
+				Emit(xa, ya, xb, yb, { "HORIZONTAL", tl, tr })
+			elseif xb - xa < 16 then
+				local top, bottom = min(tl, tr), min(bl, br)
+				if top > 0 or bottom > 0 then Emit(xa, ya, xb, yb, { "VERTICAL", bottom, top }) end
+			else
+				for s = 1, CORNER_SLICES do
+					local sa, sb = xa + (xb - xa) * (s - 1) / CORNER_SLICES, xa + (xb - xa) * s / CORNER_SLICES
+					local top, bottom = min(Alpha(sa, ya), Alpha(sb, ya)), min(Alpha(sa, yb), Alpha(sb, yb))
+					if top > 0 or bottom > 0 then Emit(sa, ya, sb, yb, { "VERTICAL", bottom, top }) end
+				end
+			end
+		end
+	end
+end
+
+-- Les morceaux rangés par rangées, de gauche à droite (AddCells accroche chacun à sa voisine),
+-- deux voisins d'une même tuile au même dégradé vertical (ou opaques) réunis en un seul.
+local function ByRows(a, b)
+	if a[2] ~= b[2] then return a[2] < b[2] end
+	return a[1] < b[1]
+end
+local function SameFade(f, g)
+	if not f or not g then return not f and not g end
+	if f[1] == "HORIZONTAL" and g[1] == "HORIZONTAL" then
+		return f[2] == 1 and f[3] == 1 and g[2] == 1 and g[3] == 1
+	end
+	return f[1] == "VERTICAL" and g[1] == "VERTICAL" and Near(f[2], g[2]) and Near(f[3], g[3])
+end
+local function Opaque(f)
+	return not f or Near(f[2], 1) and Near(f[3], 1)
+end
+local function Rows(cells)
+	sort(cells, ByRows)
+	local out = {}
+	for _, c in ipairs(cells) do
+		local p = out[#out]
+		if p and p[2] == c[2] and p[4] == c[4] and p[3] == c[1] and p.tile == c.tile and SameFade(p.fade, c.fade) then
+			p[3], p.u1 = c[3], c.u1
+		else
+			out[#out + 1] = c
+		end
+	end
+	-- (puis les morceaux opaques l'un sous l'autre, de même largeur et de même tuile)
+	local below = {}
+	for _, c in ipairs(out) do
+		if Opaque(c.fade) then below[c[1] .. ":" .. c[2]] = c end
+	end
+	local merged = {}
+	for _, c in ipairs(out) do
+		if not c.gone and Opaque(c.fade) then
+			local n = below[c[1] .. ":" .. c[4]]
+			while n and not n.gone and n[3] == c[3] and n.tile == c.tile and n ~= c do
+				c[4], c.v1, n.gone = n[4], n.v1, true
+				n = below[c[1] .. ":" .. c[4]]
+			end
+		end
+	end
+	for _, c in ipairs(out) do
+		if not c.gone then merged[#merged + 1] = c end
+	end
+	return merged
+end
+
+-- Le fond d'une zone coupé à sa forme : 12 tuiles de 256 px (MAP_W x MAP_H utiles).
+local function ShapeCells(s)
+	local xs = { 256, 512, 768 }
+	ShapeXs(s, xs, 0)
+	xs = Within(xs, s.x0, s.x1, true)
+	local cells = {}
+	Cut(xs, function(xa, xb)
+		local ys = { 256, 512 }
+		ShapeYs(s, ys, xa, xb, 0, 0)
+		return Within(ys, 0, MAP_H, true)
+	end, function(x, y) return ShapeAlpha(s, x, y) end, function(xa, ya, xb, yb, fade)
+		local k, j = floor(xa / 256), floor(ya / 256)
+		local tx, ty = 256 * k, 256 * j
+		local tEnd, vEnd = min(tx + 256, MAP_W), min(ty + 256, MAP_H)
+		cells[#cells + 1] = {
+			xa, ya, xb, yb,
+			tile = j * 4 + k + 1,
+			u0 = (xa - tx + (xa == tx and 0.5 or 0)) / 256, u1 = (xb - tx - (xb == tEnd and 0.5 or 0)) / 256,
+			v0 = (ya - ty + (ya == ty and 0.5 or 0)) / 256, v1 = (yb - ty - (yb == vEnd and 0.5 or 0)) / 256,
+			fade = fade or { "HORIZONTAL", 1, 1 },
+		}
+	end)
+	return Rows(cells)
+end
+
 -- Le découpage du fond d'une zone ou d'une ville (calculé une fois par carte).
 local baseCells = {}
 local function BaseCells(file, city)
 	if baseCells[file] == nil then
-		local r = city and CITY_PLAN[file]
-		if not r and not city and ns.Overlays[file] then
-			local x0, y0, x1, y1 = MAP_W, MAP_H, 0, 0
-			for _, o in ipairs(ns.Overlays[file]) do
-				x0, y0 = min(x0, o[4]), min(y0, o[5])
-				x1, y1 = max(x1, o[4] + o[2]), max(y1, o[5] + o[3])
-			end
-			r = { max(0, x0), max(0, y0), min(MAP_W, x1), min(MAP_H, y1) }
+		local s = not city and Shape(file)
+		if s then
+			baseCells[file] = ShapeCells(s)
+		else
+			local r = city and CITY_PLAN[file] or not city and PiecesRect(file)
+			-- (sans territoire connu : la carte entière, au bord large)
+			baseCells[file] = r and RectCells(r[1], r[2], r[3], r[4]) or false
 		end
-		-- (sans territoire connu : la carte entière, au bord large)
-		baseCells[file] = r and RectCells(r[1], r[2], r[3], r[4]) or false
 	end
 	return baseCells[file] or GRID.feather
 end
@@ -439,15 +651,68 @@ local function Revealed(info)
 	return info.reveal
 end
 
--- Les morceaux d'une zone (overlays : découverts, ou tous). Leur découpage est calculé une fois
--- par liste et gardé sur elle (overlays.cells) : une découverte donne une nouvelle liste.
-local function AddOverlays(list, layer, overlays, c, rx, ry, rw, rh)
+-- Un morceau coupé à la forme de sa zone (s), avec le bord adouci de son cadre (sides, band).
+local function PieceShapeCells(o, sides, band, s)
+	local tw, th, ox, oy = o[2], o[3], o[4], o[5]
+	-- (entièrement dans le cœur du territoire : le découpage d'origine)
+	local inside = true
+	local probe = { 0, tw }
+	ShapeXs(s, probe, ox)
+	for _, x in ipairs(Within(probe, 0, tw)) do
+		local ys = { 0, th }
+		ShapeYs(s, ys, x, x, ox, oy)
+		for _, y in ipairs(Within(ys, 0, th)) do
+			if ShapeAlpha(s, ox + x, oy + y) < 1 then inside = false end
+		end
+	end
+	if inside then return PieceCells(tw, th, sides, band) end
+	local wide, tall = ceil(tw / 256), ceil(th / 256)
+	local bx, by = min(band, tw / 3), min(band, th / 3)
+	local function Alpha(x, y)
+		local fx, fy = 1, 1
+		if sides.left then fx = min(fx, x / bx) end
+		if sides.right then fx = min(fx, (tw - x) / bx) end
+		if sides.top then fy = min(fy, y / by) end
+		if sides.bottom then fy = min(fy, (th - y) / by) end
+		return max(0, fx) * max(0, fy) * ShapeAlpha(s, ox + x, oy + y)
+	end
+	local xs = { 0, tw, sides.left and bx, sides.right and tw - bx }
+	for k = 1, wide - 1 do xs[#xs + 1] = 256 * k end
+	ShapeXs(s, xs, ox)
+	xs = Within(xs, 0, tw, true)
+	local cells = {}
+	Cut(xs, function(xa, xb)
+		local ys = { 0, th, sides.top and by, sides.bottom and th - by }
+		for j = 1, tall - 1 do ys[#ys + 1] = 256 * j end
+		ShapeYs(s, ys, xa, xb, ox, oy)
+		return Within(ys, 0, th, true)
+	end, Alpha, function(x0, y0, x1, y1, fade)
+		local j, k = floor(y0 / 256) + 1, floor(x0 / 256) + 1
+		local ty, tx = 256 * (j - 1), 256 * (k - 1)
+		local ph, pw = min(256, th - ty), min(256, tw - tx)
+		local fh, fw = j < tall and 256 or FileSize(ph), k < wide and 256 or FileSize(pw)
+		cells[#cells + 1] = {
+			x0, y0, x1, y1,
+			tile = (j - 1) * wide + k,
+			u0 = (x0 - tx + (x0 == tx and 0.5 or 0)) / fw, u1 = (x1 - tx - (x1 == tx + pw and 0.5 or 0)) / fw,
+			v0 = (y0 - ty + (y0 == ty and 0.5 or 0)) / fh, v1 = (y1 - ty - (y1 == ty + ph and 0.5 or 0)) / fh,
+			fade = fade,
+		}
+	end)
+	return Rows(cells)
+end
+
+-- Les morceaux d'une zone (overlays : découverts, ou tous), coupés à sa forme quand elle est
+-- connue. Leur découpage est calculé une fois par liste et gardé sur elle (overlays.cells) : une
+-- découverte donne une nouvelle liste.
+local function AddOverlays(list, layer, overlays, file, c, rx, ry, rw, rh)
 	local sx, sy = rw / MAP_W, rh / MAP_H
 	if not overlays.cells then
 		overlays.cells = {}
+		local s = Shape(file)
 		for i, o in ipairs(overlays) do
 			local sides, band = ns.FrameBand(o, c)
-			overlays.cells[i] = PieceCells(o[2], o[3], sides, band)
+			overlays.cells[i] = s and PieceShapeCells(o, sides, band, s) or PieceCells(o[2], o[3], sides, band)
 		end
 	end
 	for i, o in ipairs(overlays) do
@@ -582,7 +847,7 @@ local function LoadZone(e)
 		e.x, e.y, e.w / MAP_W, e.h / MAP_H)
 	e.over = {}
 	e.reveal = not ns.db.fog
-	AddOverlays(e.over, L.over, e.reveal and Revealed(e.info) or e.info.overlays, e.info.c, e.x, e.y, e.w, e.h)
+	AddOverlays(e.over, L.over, e.reveal and Revealed(e.info) or e.info.overlays, e.file, e.info.c, e.x, e.y, e.w, e.h)
 	e.loaded, e.alpha = true, nil
 	stats.zones = stats.zones + 1
 end
