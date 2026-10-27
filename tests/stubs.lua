@@ -221,7 +221,8 @@ DungeonUsesTerrainMap = function() return false end
 GetNumMapOverlays = function() return map.z > 0 and 2 or 0 end
 GetMapOverlayInfo = function(i)
 	local file = GetMapInfo()
-	if i == 1 then return "Interface\\WorldMap\\" .. file .. "\\Piece", 300, 200, 100, 50 end
+	-- (à l'intérieur de la carte et du territoire réel d'Elwynn, Data/Territory.lua)
+	if i == 1 then return "Interface\\WorldMap\\" .. file .. "\\Piece", 300, 200, 100, 100 end
 	return "Interface\\WorldMap\\" .. file .. "\\Corner", 256, 512, 746, 156   -- (dans le coin bas-droit de la carte)
 end
 
