@@ -992,6 +992,11 @@ do
 	end
 	walk(StrataFrame)
 	check(n > 0 and #corners == 0, format("Toundra Boréenne : rien dans les coins aux griffes (%d pièces) %s", n, table.concat(corners, " ")))
+	-- #64 : l'Outreterre n'a pas de mer. Le sol du Néant tombe dehors (la boussole du coin bas-droit
+	-- de Raz-de-Néant), mais les îles qui ne sont que des bâtiments (Donjon de la Tempête) restent.
+	local t = ns.Territory.Netherstorm
+	check(t[2] >= 880 and t[6] and t[6][2] < 580,
+		format("Raz-de-Néant : Donjon de la Tempête gardé, boussole du coin écartée (%d, %s)", t[2], tostring(t[6] and t[6][2])))
 	-- Préparation d'avance : la carte ouverte, toutes les zones de la vue finissent découpées.
 	for _ = 1, 200 do
 		if ns.Warmed() then break end

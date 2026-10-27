@@ -17,7 +17,7 @@ Ce programme est distribué dans l'espoir qu'il sera utile, mais **sans aucune g
 ## Éléments tiers
 
 - `Data/Zones.lua` contient la taille et la position des continents et des zones (données factuelles du client, table `WorldMapArea`), reprises de la table `WorldMapSize` de **Astrolabe** par Esamynn (LGPL 2.1). Aucun code d'Astrolabe n'est inclus dans l'addon. Le fichier de référence `tools/ref/Astrolabe-r107.lua`, qui sert seulement à régénérer ces données, est distribué sous sa propre licence : [`tools/ref/lgpl.txt`](tools/ref/lgpl.txt).
-- `Data/Territory.lua` contient l'étendue du terrain de chaque zone (rectangles en pixels de sa carte : données factuelles du client), relevée dans les fichiers de terrain (ADT) et les tables `AreaTable` et `WorldMapArea` du client 3.3.5 par `tools/extract_territory.py`.
+- `Data/Territory.lua` contient l'étendue du terrain de chaque zone (rectangles en pixels de sa carte : données factuelles du client), relevée dans les fichiers de terrain (ADT, et pour l'Outreterre les morceaux de carte du client) et les tables `AreaTable` et `WorldMapArea` du client 3.3.5 par `tools/extract_territory.py`.
 - `Data/Overlays.lua` contient la liste de tous les morceaux des cartes de zone (nom de texture, taille, place : données factuelles du client), lue dans la table `WorldMapOverlay` du client 3.3.5 par `tools/extract_overlays.py`. Aucune image de Blizzard n'est incluse : les textures sont celles du client du joueur.
 - `Data/Levels.lua` contient les tranches de niveaux des zones (données factuelles du jeu), relevées sur le **Warcraft Wiki**.
 - L'idée d'une carte du monde continue vient d'**OpenMap** pour WoW Forever (licence MIT). Strata est écrit pour l'API 3.3.5 : aucun code ni aucune image d'OpenMap n'est inclus.
@@ -44,7 +44,7 @@ This program is distributed in the hope that it will be useful, but **WITHOUT AN
 ## Third-party material
 
 - `Data/Zones.lua` holds the size and position of continents and zones (factual client data, `WorldMapArea` table), taken from the `WorldMapSize` table of **Astrolabe** by Esamynn (LGPL 2.1). No Astrolabe code ships in the add-on. The reference file `tools/ref/Astrolabe-r107.lua`, used only to regenerate that data, is distributed under its own license: [`tools/ref/lgpl.txt`](tools/ref/lgpl.txt).
-- `Data/Territory.lua` holds the extent of each zone's terrain (rectangles in pixels of its map: factual client data), read from the 3.3.5 client's terrain files (ADT) and its `AreaTable` and `WorldMapArea` tables by `tools/extract_territory.py`.
+- `Data/Territory.lua` holds the extent of each zone's terrain (rectangles in pixels of its map: factual client data), read from the 3.3.5 client's terrain files (ADT, and for Outland the client's map pieces) and its `AreaTable` and `WorldMapArea` tables by `tools/extract_territory.py`.
 - `Data/Overlays.lua` lists every piece of the zone maps (texture name, size, position: factual client data), read from the 3.3.5 client's `WorldMapOverlay` table by `tools/extract_overlays.py`. No Blizzard image ships: the textures are the player's own client's.
 - `Data/Levels.lua` holds the zones' level ranges (factual game data), taken from the **Warcraft Wiki**.
 - The idea of a seamless world map comes from **OpenMap** for WoW Forever (MIT license). Strata is written for the 3.3.5 API: no OpenMap code or art is included.
