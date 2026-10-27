@@ -1,6 +1,9 @@
 # Archives de distribution : publiées dans les Releases, pas dans le dépôt
 *.zip
 
+# Feuille de route détaillée : document de travail local
+docs/FEUILLE-DE-ROUTE.md
+
 # Fichiers système et d'éditeur
 .DS_Store
 Thumbs.db

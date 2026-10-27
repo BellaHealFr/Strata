@@ -21,7 +21,7 @@ Le principe : **rien n'entre dans `main` sans vérification automatique verte, e
 
 | Outil | Rôle |
 |---|---|
-| **Jalons** (*Milestones*) | Une version = un jalon. Il contient tout ce qui doit y entrer. La feuille de route détaillée est dans [FEUILLE-DE-ROUTE.md](FEUILLE-DE-ROUTE.md). |
+| **Jalons** (*Milestones*) | Une version = un jalon. Il contient tout ce qui doit y entrer. |
 | **Tickets** (*Issues*) | Une fonction, un bug ou une tâche = un ticket, rattaché à son jalon. |
 | **Étiquettes** | Le type (`bug`, `enhancement`), le domaine (`assemblage`, `positions`, `performances`, `interface`, `données`, `traduction`) et l'état (`bloquant`, `régression`, `à vérifier en jeu`). |
 | **Demandes de fusion** (*Pull Requests*) | Toute modification passe par une branche et une demande de fusion, avec la liste de vérifications. |
@@ -127,7 +127,7 @@ Le protocole couvre :
 - **Erreurs** : `/console scriptErrors 1`, aucune erreur Lua pendant tout le test.
 - **Fonctions** : la liste de la version, plus les tickets marqués `à vérifier en jeu`.
 - **Rendu** : joints, couches, villes, transitions entre continents, captures jointes.
-- **Performances en jeu** (à partir de la 0.2, avec `/strata bench`) : images par seconde carte ouverte, temps de Strata par image en déplacement, mémoire de l'addon après un tour d'Azeroth. Objectifs dans [FEUILLE-DE-ROUTE.md](FEUILLE-DE-ROUTE.md#objectifs-de-performance-en-jeu).
+- **Performances en jeu** (à partir de la 0.2, avec `/strata bench`) : images par seconde carte ouverte, temps de Strata par image en déplacement, mémoire de l'addon après un tour d'Azeroth. Objectifs dans `Bench.lua`.
 - **Clients** : sur les serveurs et les langues de client dont on dispose.
   - Un seul serveur suffit quand l'auteur n'en a qu'un ; tout autre serveur essayé est noté dans le rapport.
   - L'anglais est vérifié par le banc, qui fait tourner tout l'addon dans les deux langues à chaque modification, et par les retours des joueurs sur les bêtas. Un essai sur un client enUS, quand il est possible, est noté dans le rapport.

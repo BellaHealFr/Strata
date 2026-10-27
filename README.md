@@ -76,7 +76,7 @@ Strata en est à ses débuts. Les prochaines versions reprennent, adaptées à l
 | **0.4** | plume pour dessiner sur la carte, partage d'épingles, menu et options, fenêtre des nouveautés |
 | **0.5** | zoom au niveau de la minicarte, fondu entre zones pré-assemblé |
 
-Le plan complet, l'ordre des tâches et les critères de sortie de chaque version sont dans **[docs/FEUILLE-DE-ROUTE.md](docs/FEUILLE-DE-ROUTE.md)**. Chaque fonction est suivie dans les **[jalons](../../milestones)** et les **[tickets](../../issues)**.
+Chaque fonction est suivie dans les **[jalons](../../milestones)** et les **[tickets](../../issues)**.
 
 Aucune modification n'entre sans vérification automatique, budgets de performance compris, et aucune version ne sort sans test en jeu : les règles sont dans **[docs/SUIVI.md](docs/SUIVI.md)**.
 
