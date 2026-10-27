@@ -399,9 +399,14 @@ local function ShapeAlpha(s, x, y)
 	local fx = Band(x, s.x0, s.x1, s.bx)
 	local best = 0
 	if fx > 0 then
-		for _, c in ipairs(s.cols) do
+		local cols = s.cols
+		for i = 1, #cols do
+			local c = cols[i]
 			local inner = x < c[1] and (x - c[1] + BASE_BAND) / BASE_BAND or x > c[2] and (c[2] + BASE_BAND - x) / BASE_BAND or 1
-			if inner > 0 then best = max(best, min(inner, fx) * Band(y, c[3], c[4], c[5])) end
+			if inner > 0 and y > c[3] and y < c[4] then
+				local a = (inner < fx and inner or fx) * Band(y, c[3], c[4], c[5])
+				if a > best then best = a end
+			end
 		end
 	end
 	return best
@@ -455,12 +460,16 @@ local function Near(a, b) return abs(a - b) < 1e-3 end
 -- côté le moins opaque. Emit(x0, y0, x1, y1, fade) pour chaque morceau non entièrement
 -- transparent ; fade est nil s'il est opaque.
 local function Cut(xs, YsFor, Alpha, Emit)
+	local left, right = {}, {}       -- transparence sur les bords gauche et droit, par borne y
 	for i = 1, #xs - 1 do
 		local xa, xb = xs[i], xs[i + 1]
 		local ys = YsFor(xa, xb)
+		for j = 1, #ys do
+			left[j], right[j] = Alpha(xa, ys[j]), Alpha(xb, ys[j])
+		end
 		for j = 1, #ys - 1 do
 			local ya, yb = ys[j], ys[j + 1]
-			local tl, tr, bl, br = Alpha(xa, ya), Alpha(xb, ya), Alpha(xa, yb), Alpha(xb, yb)
+			local tl, tr, bl, br = left[j], right[j], left[j + 1], right[j + 1]
 			if Near(tl, tr) and Near(bl, br) then
 				if not (Near(tl, 0) and Near(bl, 0)) then
 					Emit(xa, ya, xb, yb, not (Near(tl, 1) and Near(bl, 1)) and { "VERTICAL", bl, tl } or nil)
@@ -509,17 +518,21 @@ local function Rows(cells)
 		end
 	end
 	-- (puis les morceaux opaques l'un sous l'autre, de même largeur et de même tuile)
-	local below = {}
+	local below = {}                 -- [x0][y0] = morceau opaque
 	for _, c in ipairs(out) do
-		if Opaque(c.fade) then below[c[1] .. ":" .. c[2]] = c end
+		if Opaque(c.fade) then
+			below[c[1]] = below[c[1]] or {}
+			below[c[1]][c[2]] = c
+		end
 	end
 	local merged = {}
 	for _, c in ipairs(out) do
 		if not c.gone and Opaque(c.fade) then
-			local n = below[c[1] .. ":" .. c[4]]
+			local col = below[c[1]]
+			local n = col[c[4]]
 			while n and not n.gone and n[3] == c[3] and n.tile == c.tile and n ~= c do
 				c[4], c.v1, n.gone = n[4], n.v1, true
-				n = below[c[1] .. ":" .. c[4]]
+				n = col[c[4]]
 			end
 		end
 	end
@@ -654,18 +667,18 @@ end
 -- Un morceau coupé à la forme de sa zone (s), avec le bord adouci de son cadre (sides, band).
 local function PieceShapeCells(o, sides, band, s)
 	local tw, th, ox, oy = o[2], o[3], o[4], o[5]
-	-- (entièrement dans le cœur du territoire : le découpage d'origine)
-	local inside = true
-	local probe = { 0, tw }
-	ShapeXs(s, probe, ox)
-	for _, x in ipairs(Within(probe, 0, tw)) do
-		local ys = { 0, th }
-		ShapeYs(s, ys, x, x, ox, oy)
-		for _, y in ipairs(Within(ys, 0, th)) do
-			if ShapeAlpha(s, ox + x, oy + y) < 1 then inside = false end
+	-- (entièrement dans le cœur du territoire : le découpage d'origine. Le cœur, sous chaque
+	-- colonne que le morceau touche, sans trou entre elles, loin des bords est et ouest.)
+	local px0, px1, py0, py1 = ox, ox + tw, oy, oy + th
+	local inside = px0 >= s.x0 + s.bx and px1 <= s.x1 - s.bx
+	local reach = px0
+	for _, c in ipairs(s.cols) do
+		if inside and c[1] < px1 and c[2] > px0 then
+			if c[1] > reach or py0 < c[3] + c[5] or py1 > c[4] - c[5] then inside = false end
+			reach = max(reach, c[2])
 		end
 	end
-	if inside then return PieceCells(tw, th, sides, band) end
+	if inside and reach >= px1 then return PieceCells(tw, th, sides, band) end
 	local wide, tall = ceil(tw / 256), ceil(th / 256)
 	local bx, by = min(band, tw / 3), min(band, th / 3)
 	local function Alpha(x, y)
@@ -705,18 +718,24 @@ end
 -- Les morceaux d'une zone (overlays : découverts, ou tous), coupés à sa forme quand elle est
 -- connue. Leur découpage est calculé une fois par liste et gardé sur elle (overlays.cells) : une
 -- découverte donne une nouvelle liste.
+local function OverlayCells(overlays, i, file, c)
+	local cells = overlays.cells
+	if not cells then
+		cells = {}
+		overlays.cells = cells
+	end
+	if not cells[i] then
+		local o, s = overlays[i], Shape(file)
+		local sides, band = ns.FrameBand(o, c)
+		cells[i] = s and PieceShapeCells(o, sides, band, s) or PieceCells(o[2], o[3], sides, band)
+	end
+	return cells[i]
+end
+
 local function AddOverlays(list, layer, overlays, file, c, rx, ry, rw, rh)
 	local sx, sy = rw / MAP_W, rh / MAP_H
-	if not overlays.cells then
-		overlays.cells = {}
-		local s = Shape(file)
-		for i, o in ipairs(overlays) do
-			local sides, band = ns.FrameBand(o, c)
-			overlays.cells[i] = s and PieceShapeCells(o, sides, band, s) or PieceCells(o[2], o[3], sides, band)
-		end
-	end
 	for i, o in ipairs(overlays) do
-		AddCells(list, layer, overlays.cells[i], o[1], rx + o[4] * sx, ry + o[5] * sy, sx, sy)
+		AddCells(list, layer, OverlayCells(overlays, i, file, c), o[1], rx + o[4] * sx, ry + o[5] * sy, sx, sy)
 	end
 end
 
@@ -1020,6 +1039,49 @@ local function UpdateLayers()
 	dirty = false
 end
 
+-- Préparation d'avance (#62) : le découpage d'une zone à son territoire (fond et morceaux) coûte
+-- jusqu'à quelques ms, trop pour l'image où elle paraît. Carte ouverte, aux images sans
+-- chargement, les zones les plus proches du centre de la vue sont préparées, un morceau après
+-- l'autre, au plus WARM_MS ms par image. Une zone préparée paraît sans calcul.
+local WARM_MS = 1.5
+local function Warm()
+	local t0 = debugprofilestop()
+	local vw, vh = ViewSize()
+	local cx, cy = (-ox + vw / 2) / zoom, (-oy + vh / 2) / zoom
+	local reveal = not ns.db.fog
+	while debugprofilestop() - t0 < WARM_MS do
+		local e, best
+		for _, z in ipairs(V.zones) do
+			if z.readyFog ~= reveal or z.readyList ~= z.info.overlays then
+				local dx, dy = z.x + z.w / 2 - cx, z.y + z.h / 2 - cy
+				local d = dx * dx + dy * dy
+				if not best or d < best then e, best = z, d end
+			end
+		end
+		if not e then
+			V.warmed = reveal
+			return
+		end
+		if baseCells[e.file] == nil then
+			BaseCells(e.file, e.city)
+		else
+			local list = reveal and Revealed(e.info) or e.info.overlays
+			local i = 1
+			while list[i] and list.cells and list.cells[i] do i = i + 1 end
+			if list[i] then
+				OverlayCells(list, i, e.file, e.info.c)
+			else
+				e.readyFog, e.readyList = reveal, e.info.overlays
+			end
+		end
+	end
+end
+
+-- Toutes les zones de la vue sont-elles préparées ? (le banc attend la fin avant de mesurer)
+function ns.Warmed()
+	return V and V.warmed == not ns.db.fog
+end
+
 local function ReleaseHidden()
 	local now = GetTime()
 	for _, e in ipairs(V.zones) do
@@ -1240,6 +1302,8 @@ local function OnUpdate(self, elapsed)
 			UpdateLayers()
 		end
 		self.layerWait = 0.08
+	elseif V.warmed ~= not ns.db.fog then
+		Warm()
 	end
 	self.pinWait = (self.pinWait or 0) - elapsed
 	if self.pinWait <= 0 then

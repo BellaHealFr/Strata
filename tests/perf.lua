@@ -9,6 +9,19 @@ local ns = Strata
 TEST.Fire("ADDON_LOADED", "Strata")
 
 local scroll, child
+
+-- Préparation d'avance (#62) : images jusqu'à ce que toutes les zones de la vue soient découpées
+-- à leur territoire ; la pire coûte au plus WARM_MS (1,5 ms) de préparation, plus le reste.
+local function warmUp(name)
+	local frames, worst = 0, 0
+	while not ns.Warmed() and frames < 2000 do
+		local _, peak = measureFrames(1)
+		frames, worst = frames + 1, math.max(worst, peak.ops)
+	end
+	check(ns.Warmed(), name .. " : toutes les zones préparées")
+	budget(name .. ".ops par image (pire)", worst)
+	budget(name .. ".images", frames)
+end
 local function view()
 	scroll = scroll or find(StrataFrame, function(r) return r.kind == "ScrollFrame" end)
 	child = child or scroll.scrollChild
@@ -20,6 +33,7 @@ local open = measure(function() Strata_Toggle() end)
 budget("ouverture.ops", open.ops)
 budget("ouverture.SetMapZoom", open.SetMapZoom)
 budget("ouverture.CreateTexture", open.CreateTexture)
+warmUp("préparation")
 tick(1)
 
 -- 2. Carte ouverte, immobile : seules les icônes vivent.
@@ -203,6 +217,7 @@ tick(1)
 ns.db.fog = false
 ns.Refresh()
 tick(1)
+warmUp("révélée.préparation")
 local maxRevealed = 0
 local reveal = measure(function()
 	for gy = 0.1, 0.9, 0.2 do

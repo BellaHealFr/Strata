@@ -968,3 +968,36 @@ do
 	ns.Rebuild()
 	Strata_Toggle()
 end
+
+-- #62 : le territoire se limite à la terre (fond de la mer exclu) : les griffes peintes dans les
+-- coins des cartes du Norfendre (haut-gauche, bas-droit) et la mer de la zone tombent dehors.
+do
+	if not StrataFrame:IsShown() then Strata_Toggle() end
+	ns.Rebuild()
+	local k = 1000 / ns.VIEWS.azeroth.size.w
+	local _, bx, by = ns.ToView(4, "BoreanTundra", 0.5, 0.5)
+	ns.view.Center(bx * k, by * k, 6)
+	tick(0.3)
+	local n, corners = 0, {}
+	local function walk(r)
+		if r.kind == "Texture" and r:IsVisible() and r.cell and type(r.path) == "string"
+			and r.path:match("^Interface\\WorldMap\\BoreanTundra\\BoreanTundra%d+$") then
+			local c = r.cell
+			n = n + 1
+			if (c[1] < 100 and c[2] < 100) or (c[3] > 880 and c[4] > 560) then
+				corners[#corners + 1] = format("%d,%d", c[1], c[2])
+			end
+		end
+		for _, ch in ipairs(r.children) do walk(ch) end
+	end
+	walk(StrataFrame)
+	check(n > 0 and #corners == 0, format("Toundra Boréenne : rien dans les coins aux griffes (%d pièces) %s", n, table.concat(corners, " ")))
+	-- Préparation d'avance : la carte ouverte, toutes les zones de la vue finissent découpées.
+	for _ = 1, 200 do
+		if ns.Warmed() then break end
+		frame()
+	end
+	check(ns.Warmed(), "toutes les zones de la vue préparées d'avance")
+	ns.Rebuild()
+	Strata_Toggle()
+end
