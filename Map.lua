@@ -246,6 +246,21 @@ local CITY_PLAN = {
 	ThunderBluff = { 110, 20, 830, 600 }, SilvermoonCity = { 20, 20, 990, 650 }, ShattrathCity = { 80, 20, 810, 660 },
 	Dalaran = { 40, 30, 840, 640 },
 }
+-- Bannière d'une ville peinte sur la carte de sa zone (dans ses morceaux) : relevée sur la carte
+-- de la zone (px), avec ses rouleaux. Comme OpenMap (MapBanners, MapBannerHoles), elle est
+-- dessinée à part et s'efface quand la ville paraît : la ville porte son propre nom, et la
+-- bannière n'est plus coupée par son plan (« …NERRE » à côté des Pitons-du-Tonnerre).
+local BANNERS = {
+	Mulgore = { "ThunderBluff", 318, 158, 552, 194 },
+	Durotar = { "Ogrimmar", 340, 0, 600, 62 },
+	Tirisfal = { "Undercity", 455, 470, 745, 532 },
+	Teldrassil = { "Darnassis", 125, 418, 390, 470 },
+	Elwynn = { "Stormwind", 0, 118, 390, 192 },
+	DunMorogh = { "Ironforge", 455, 172, 650, 226 },
+	AzuremystIsle = { "TheExodar", 95, 128, 390, 182 },
+	TerokkarForest = { "ShattrathCity", 130, 212, 395, 272 },
+}
+ns.BANNERS = BANNERS
 
 -- Les côtés d'un morceau qui touchent le cadre de la carte, et la largeur du bord adouci.
 function ns.FrameBand(o, c)
@@ -428,15 +443,18 @@ local function ShapeYs(s, ys, xa, xb, dx, dy)
 end
 
 -- Les bornes gardées dans [lo, hi], triées, sans doublon (false : borne absente). snap : une
--- borne à moins de SNAP px d'une autre est retirée (pas de lamelles) ; lo, hi et les bords des
--- tuiles (multiples de 256) restent.
+-- borne à moins de SNAP px d'une autre est retirée (pas de lamelles) ; lo, hi, les bords des
+-- tuiles (multiples de 256) et les bornes de keep restent.
 local SNAP = 12
-local function Within(t, lo, hi, snap)
+local function Within(t, lo, hi, snap, keep)
 	local fixed, other = { lo, hi }, {}
 	for _, v in ipairs(t) do
 		if v and v > lo and v < hi then
 			if v % 256 == 0 or not snap then fixed[#fixed + 1] = v else other[#other + 1] = v end
 		end
+	end
+	for _, v in ipairs(keep or {}) do
+		if v > lo and v < hi then fixed[#fixed + 1] = v end
 	end
 	local out = SortUnique(fixed)
 	if snap then
@@ -665,12 +683,15 @@ local function Revealed(info)
 end
 
 -- Un morceau coupé à la forme de sa zone (s), avec le bord adouci de son cadre (sides, band).
-local function PieceShapeCells(o, sides, band, s)
+-- b : la bannière de ville de la zone (BANNERS), ou nil. Les pièces d'un morceau qui la touche
+-- sont coupées à son rectangle ; celles du dedans sont rendues à part (deuxième résultat).
+local function PieceShapeCells(o, sides, band, s, b)
 	local tw, th, ox, oy = o[2], o[3], o[4], o[5]
+	local px0, px1, py0, py1 = ox, ox + tw, oy, oy + th
+	b = b and px0 < b[4] and px1 > b[2] and py0 < b[5] and py1 > b[3] and b or nil
 	-- (entièrement dans le cœur du territoire : le découpage d'origine. Le cœur, sous chaque
 	-- colonne que le morceau touche, sans trou entre elles, loin des bords est et ouest.)
-	local px0, px1, py0, py1 = ox, ox + tw, oy, oy + th
-	local inside = px0 >= s.x0 + s.bx and px1 <= s.x1 - s.bx
+	local inside = not b and px0 >= s.x0 + s.bx and px1 <= s.x1 - s.bx
 	local reach = px0
 	for _, c in ipairs(s.cols) do
 		if inside and c[1] < px1 and c[2] > px0 then
@@ -692,19 +713,21 @@ local function PieceShapeCells(o, sides, band, s)
 	local xs = { 0, tw, sides.left and bx, sides.right and tw - bx }
 	for k = 1, wide - 1 do xs[#xs + 1] = 256 * k end
 	ShapeXs(s, xs, ox)
-	xs = Within(xs, 0, tw, true)
-	local cells = {}
+	xs = Within(xs, 0, tw, true, b and { b[2] - ox, b[4] - ox })
+	local cells, banner = {}, {}
 	Cut(xs, function(xa, xb)
 		local ys = { 0, th, sides.top and by, sides.bottom and th - by }
 		for j = 1, tall - 1 do ys[#ys + 1] = 256 * j end
 		ShapeYs(s, ys, xa, xb, ox, oy)
-		return Within(ys, 0, th, true)
+		return Within(ys, 0, th, true, b and { b[3] - oy, b[5] - oy })
 	end, Alpha, function(x0, y0, x1, y1, fade)
+		local mx, my = ox + (x0 + x1) / 2, oy + (y0 + y1) / 2
+		local list = b and mx > b[2] and mx < b[4] and my > b[3] and my < b[5] and banner or cells
 		local j, k = floor(y0 / 256) + 1, floor(x0 / 256) + 1
 		local ty, tx = 256 * (j - 1), 256 * (k - 1)
 		local ph, pw = min(256, th - ty), min(256, tw - tx)
 		local fh, fw = j < tall and 256 or FileSize(ph), k < wide and 256 or FileSize(pw)
-		cells[#cells + 1] = {
+		list[#list + 1] = {
 			x0, y0, x1, y1,
 			tile = (j - 1) * wide + k,
 			u0 = (x0 - tx + (x0 == tx and 0.5 or 0)) / fw, u1 = (x1 - tx - (x1 == tx + pw and 0.5 or 0)) / fw,
@@ -712,30 +735,37 @@ local function PieceShapeCells(o, sides, band, s)
 			fade = fade,
 		}
 	end)
-	return Rows(cells)
+	return Rows(cells), b and Rows(banner) or nil
 end
 
 -- Les morceaux d'une zone (overlays : découverts, ou tous), coupés à sa forme quand elle est
--- connue. Leur découpage est calculé une fois par liste et gardé sur elle (overlays.cells) : une
--- découverte donne une nouvelle liste.
+-- connue. Leur découpage est calculé une fois par liste et gardé sur elle (overlays.cells, et
+-- overlays.banner pour la bannière de ville) : une découverte donne une nouvelle liste.
+local NONE = {}
 local function OverlayCells(overlays, i, file, c)
 	local cells = overlays.cells
 	if not cells then
 		cells = {}
-		overlays.cells = cells
+		overlays.cells, overlays.banner = cells, {}
 	end
 	if not cells[i] then
 		local o, s = overlays[i], Shape(file)
 		local sides, band = ns.FrameBand(o, c)
-		cells[i] = s and PieceShapeCells(o, sides, band, s) or PieceCells(o[2], o[3], sides, band)
+		if s then
+			cells[i], overlays.banner[i] = PieceShapeCells(o, sides, band, s, BANNERS[file])
+		else
+			cells[i] = PieceCells(o[2], o[3], sides, band)
+		end
 	end
-	return cells[i]
+	return cells[i], overlays.banner[i] or NONE
 end
 
-local function AddOverlays(list, layer, overlays, file, c, rx, ry, rw, rh)
+local function AddOverlays(list, banner, layer, overlays, file, c, rx, ry, rw, rh)
 	local sx, sy = rw / MAP_W, rh / MAP_H
 	for i, o in ipairs(overlays) do
-		AddCells(list, layer, OverlayCells(overlays, i, file, c), o[1], rx + o[4] * sx, ry + o[5] * sy, sx, sy)
+		local cells, bcells = OverlayCells(overlays, i, file, c)
+		AddCells(list, layer, cells, o[1], rx + o[4] * sx, ry + o[5] * sy, sx, sy)
+		AddCells(banner, layer, bcells, o[1], rx + o[4] * sx, ry + o[5] * sy, sx, sy)
 	end
 end
 
@@ -783,7 +813,7 @@ local function BuildCanvas(name)
 	c.frame:SetWidth(c.w)
 	c.frame:SetHeight(c.h)
 	-- Les zones, avant les couches : leur profondeur fixe le nombre de cadres de base.
-	c.zones = {}
+	c.zones, c.byFile = {}, {}
 	local depth = 1
 	for _, cont in ipairs(view.continents) do
 		local C = Zones[cont]
@@ -799,6 +829,7 @@ local function BuildCanvas(name)
 					x = (bx + Z[3]) * k, y = (by + Z[4]) * k, w = Z[1] * k, h = Z[2] * k,
 				}
 				c.zones[#c.zones + 1] = e
+				c.byFile[file] = e
 				if not e.city then land[#land + 1] = e end
 			end
 		end
@@ -864,15 +895,16 @@ local function LoadZone(e)
 	e.base = {}
 	AddCells(e.base, e.city and L.city or L.base[e.depth], BaseCells(e.file, e.city), e.info.prefix,
 		e.x, e.y, e.w / MAP_W, e.h / MAP_H)
-	e.over = {}
+	e.over, e.banner = {}, {}
 	e.reveal = not ns.db.fog
-	AddOverlays(e.over, L.over, e.reveal and Revealed(e.info) or e.info.overlays, e.file, e.info.c, e.x, e.y, e.w, e.h)
-	e.loaded, e.alpha = true, nil
+	AddOverlays(e.over, e.banner, L.over, e.reveal and Revealed(e.info) or e.info.overlays, e.file, e.info.c,
+		e.x, e.y, e.w, e.h)
+	e.loaded, e.alpha, e.bannerAlpha = true, nil, nil
 	stats.zones = stats.zones + 1
 end
 
 local function ZoneTextures(e)
-	return #e.base + #e.over
+	return #e.base + #e.over + #e.banner
 end
 
 -- Rend les textures d'une zone ; c : son canevas (celui affiché par défaut).
@@ -881,6 +913,7 @@ local function UnloadZone(e, c)
 	if e.hiddenAt then hidden = hidden - ZoneTextures(e) end
 	ReleaseAll(e.city and L.city or L.base[e.depth], e.base)
 	ReleaseAll(L.over, e.over)
+	ReleaseAll(L.over, e.banner)
 	e.loaded, e.hiddenAt = nil, nil
 	stats.zones = stats.zones - 1
 end
@@ -978,15 +1011,17 @@ local function UpdateLayers()
 	local now = GetTime()
 	local reveal = not ns.db.fog
 
-	for _, e in ipairs(V.zones) do
+	local function AlphaOf(e)
 		local px = e.w * zoom
-		local alpha
 		if e.city then
 			local fade = CITY_FADE_OF[e.file] or CITY_FADE
-			alpha = Ramp(px, fade[1] * vw, fade[2] * vw)
-		else
-			alpha = Ramp(px, ZONE_MIN_PX, ZONE_MIN_PX * 1.6)
+			return Ramp(px, fade[1] * vw, fade[2] * vw)
 		end
+		return Ramp(px, ZONE_MIN_PX, ZONE_MIN_PX * 1.6)
+	end
+
+	for _, e in ipairs(V.zones) do
+		local alpha = AlphaOf(e)
 		local visible = alpha > 0 and e.x < x1 and e.x + e.w > x0 and e.y < y1 and e.y + e.h > y0
 		if visible then
 			-- (brouillard changé : la zone n'a pas les bons morceaux)
@@ -1001,9 +1036,19 @@ local function UpdateLayers()
 				SetFadeAll(e.over, alpha)
 				e.alpha = alpha
 			end
+			-- La bannière de la ville s'efface à mesure que la ville paraît.
+			local b = BANNERS[e.file]
+			local city = b and V.byFile[b[1]]
+			local bannerAlpha = city and alpha * (1 - AlphaOf(city)) or alpha
+			ShowAll(e.banner, bannerAlpha > 0)
+			if e.bannerAlpha ~= bannerAlpha then
+				SetFadeAll(e.banner, bannerAlpha)
+				e.bannerAlpha = bannerAlpha
+			end
 		elseif e.loaded and not e.hiddenAt then
 			ShowAll(e.base, false)
 			ShowAll(e.over, false)
+			ShowAll(e.banner, false)
 			e.hiddenAt = now
 			hidden = hidden + ZoneTextures(e)
 		end
