@@ -4,6 +4,17 @@ Le plan des prochaines versions de Strata : ce qui entre dans chacune, dans quel
 
 L'objectif à terme : retrouver dans le client 3.3.5 ce qu'OpenMap fait dans WoW Forever, avec le même soin et des performances mesurées. Le tableau de [correspondance avec OpenMap](#correspondance-avec-openmap) suit cet objectif fonction par fonction.
 
+## Où on en est (27 octobre 2026)
+
+- **0.2** : tout le développement est fait et fusionné dans `main` ; bêta publiée : 0.2.0-beta.1. Le test en jeu a fait apparaître des défauts de rendu de la carte assemblée, corrigés un à un (étape 4 ci-dessous, d'après OpenMap et les fichiers du client). Il reste à **les vérifier en jeu**, puis à publier la **0.2.0**.
+- **0.3** : les maîtres de vol (#9) sont prêts dans une demande de fusion en brouillon ([#43](../../../pull/43)), à mettre à jour sur `main` et à fusionner juste après la sortie de la 0.2.0.
+
+**Prochaines étapes, dans l'ordre**
+1. Vérifier en jeu les corrections de rendu (#45, #47, #49, #51, #53, #55), brouillard allumé et éteint ; corriger ce qui reste. Une ligne reste à identifier au-dessus de « La Pénombre » (frontière Forêt d'Elwynn / Bois de la Pénombre).
+2. Rédiger le rapport de test `docs/tests-en-jeu/0.2.0.md` : erreurs Lua, fonctions de base, groupe, survol, transition, nouveautés et bench sont déjà confirmés en jeu ; le rendu (#7) attend l'étape 1.
+3. Publier la **0.2.0** (numéro, CHANGELOG regroupé depuis la 0.1.0, étiquette `v0.2.0`), fermer #7 et le jalon 0.2.
+4. Mettre à jour [#43](../../../pull/43) sur `main` et le fusionner, puis continuer la 0.3 dans l'ordre ci-dessous (route et temps de vol : #42).
+
 ## Principe d'ordre
 
 Dans chaque version : **mesurer d'abord, optimiser ensuite, ajouter enfin.** Une fonction n'est construite que sur une base dont on connaît le coût.
@@ -37,6 +48,21 @@ Dans chaque version : **mesurer d'abord, optimiser ensuite, ajouter enfin.** Une
 | [#2](../../../issues/2) Épingles, note, couleur, TomTom | mesure « 200 épingles affichées » au banc |
 | [#3](../../../issues/3) Niveau des zones au survol | |
 | [#4](../../../issues/4) Plein écran | |
+
+**Étape 4 : le rendu de la carte assemblée** (ajoutée pendant le test en jeu)
+
+Les cartes de Blizzard sont faites pour être vues seules : chaque carte de zone, de ville, de continent et du monde est un rectangle opaque qui porte un cadre (bord de parchemin, ornements, blasons) et peint ce qui l'entoure. Assemblées, elles se recouvrent. OpenMap règle cela avec des masques, absents de la 3.3.5 ; Strata s'en approche avec des dégradés de transparence et les données du client.
+
+| Ticket | Correction | État |
+|---|---|---|
+| [#45](../../../issues/45) | Tuiles accrochées les unes aux autres ; zones empilées par taille ; villes au-delà d'un cinquième de la vue | à vérifier en jeu |
+| [#47](../../../issues/47) | Bord adouci des fonds (dégradé) ; centrage d'une petite zone au zoom maximal | à vérifier en jeu |
+| [#49](../../../issues/49) | Bord adouci des cartes de continent | à vérifier en jeu |
+| [#51](../../../issues/51) | Cadre de la carte effacé des morceaux découverts (vérifié sur les fichiers du client) | à vérifier en jeu |
+| [#53](../../../issues/53) | « Brouillard : non » révèle toute la carte (`Data/Overlays.lua`, 886 morceaux) ; mer au-delà du monde | à vérifier en jeu |
+| [#55](../../../issues/55) | Fonds limités au territoire : zones au rectangle de leurs morceaux, villes à leur plan | à vérifier en jeu |
+
+Limites connues, faute de masques : les coins d'une zone (entre son territoire et son rectangle) gardent un peu de la peinture des voisines ; le totem des Pitons-du-Tonnerre et l'emblème d'Orgrimmar touchent le plan de la ville ; les noms des mers et des continents restent ceux de la carte de Blizzard (#20).
 
 **Critères de sortie**
 - Pic de textures du tour d'Azeroth sous 600, budgets `tour.*` abaissés.
@@ -84,13 +110,13 @@ Dans chaque version : **mesurer d'abord, optimiser ensuite, ajouter enfin.** Une
 
 ## Objectifs de performance en jeu
 
-Mesurés avec `/strata bench` à chaque test en jeu. Premier bench en jeu (Way of Elendil, 0.2 en cours) : −3 % d'images par seconde carte ouverte, 0,02 ms par image en moyenne. Ces valeurs ne peuvent que baisser ; les objectifs seront resserrés quand #22 sera terminé.
+Mesurés avec `/strata bench` à chaque test en jeu. Dernier bench en jeu (Way of Elendil, 25 octobre, avant l'étape 4) : 175 à 190 images par seconde, carte ouverte comprise (+8 %) ; 0,01 ms de Strata par image en moyenne, 0,14 ms au pire en déplacement ; 456 textures au plus fort (1 392 au premier bench) ; lecture des cartes à la première ouverture en 11,5 ms. L'étape 4 découpe les cartes en plus de pièces (sans fichier de plus) : à remesurer au prochain test en jeu.
 
 | Mesure | Objectif |
 |---|---|
 | Images par seconde, carte ouverte et immobile, comparées à carte fermée | au plus 10 % de moins |
 | Temps de Strata par image en déplacement | moyenne sous 1 ms, pire image sous 5 ms |
-| Textures chargées au plus fort pendant le bench | sous 600 (#22) ; 1 392 au premier bench en jeu |
+| Fichiers de textures chargés au plus fort pendant le bench | sous 600 (#22) ; 456 au dernier bench en jeu |
 | Mémoire Lua de l'addon après un tour d'Azeroth | sous 2 Mo, quand le client la donne (certains renvoient 0 pour tous les addons, #27) |
 | Carte fermée | aucun coût mesurable |
 
@@ -104,6 +130,8 @@ Côté banc, les budgets déterministes de `tests/budgets.lua` s'appliquent à c
 |---|---|---|
 | Une carte continue, zoom et déplacement fluides | 0.1 | |
 | Zones découvertes et non découvertes | 0.1 | |
+| Carte révélée (brouillard éteint) | 0.2 | [#53](../../../issues/53) |
+| Bords fondus entre zones, cadres effacés, mer au-delà du monde | 0.2 (dégradés, sans masques) | [#45](../../../issues/45) à [#55](../../../issues/55) |
 | Joueur et groupe sur toute la carte | 0.1 | |
 | Coordonnées et survol | 0.1 | |
 | Fenêtre déplaçable, redimensionnable, retenue | 0.1 | |
