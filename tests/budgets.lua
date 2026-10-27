@@ -23,6 +23,13 @@ BUDGETS = {
 	-- de pièces par carte. Le client simulé a des morceaux ouverts de tous côtés (pire cas).
 	["ouverture.CreateTexture"] = 100,                   -- [86]
 
+	-- Préparation d'avance (#62) [0.2] : le découpage des zones à leur territoire, étalé sur les
+	-- images après l'ouverture (au plus 1,5 ms de calcul par image), avant qu'elles paraissent.
+	["préparation.ops par image (pire)"] = 14800,     -- [12844] la 1re image charge les zones visibles
+	["préparation.images"] = 50,                        -- [43] moins d'une seconde
+	["révélée.préparation.ops par image (pire)"] = 1650, -- [1402] un morceau entamé est fini
+	["révélée.préparation.images"] = 60,                -- [50]
+
 	-- Carte ouverte, immobile : seules les icônes vivent. [0.1.0]
 	["immobile.ops par image"] = 10,                   -- [7.6] index spatial (#6) ; 13.1 en 0.1.0
 	["immobile.SetTexture par image"] = 0,              -- [0] rien ne se charge à l'arrêt
@@ -43,7 +50,8 @@ BUDGETS = {
 	-- [0.2, #55] fond limité au territoire, bord adouci qui le suit : environ 38 pièces par fond au lieu de 24.
 	-- [0.2, #58] fond et morceaux coupés au territoire réel, en escalier (marches et coins en
 	-- tranches) : environ 51 pièces par fond au lieu de 38 ; morceaux en bord de territoire découpés.
-	["déplacement.ops par image (pire)"] = 1650,        -- [1443] image où des zones se chargent
+	-- [0.2, #62] resserré : le découpage est préparé d'avance, plus calculé quand une zone paraît.
+	["déplacement.ops par image (pire)"] = 1150,        -- [1002] image où des zones se chargent
 	["déplacement.SetScale par image"] = 1,             -- [1] un seul cadre bougé, toujours
 
 	-- Zoom animé. [0.1.0]
@@ -75,7 +83,8 @@ BUDGETS = {
 	-- [0.2, #55] fond limité au territoire, bord adouci qui le suit : environ 38 pièces par fond au lieu de 24.
 	-- [0.2, #58] fond et morceaux coupés au territoire réel, en escalier (marches et coins en
 	-- tranches) : environ 51 pièces par fond au lieu de 38 ; morceaux en bord de territoire découpés.
-	["tour.CreateTexture"] = 1000,                      -- [887] textures réutilisées, pas recréées
+	-- [0.2, #62] territoire limité à la terre : plus de morceaux coupés au bord (fichiers inchangés).
+	["tour.CreateTexture"] = 1160,                      -- [1008] textures réutilisées, pas recréées
 	["tour.textures chargées après 20 s"] = 64,         -- [51] tout ce qui est hors vue est rendu
 
 	-- Carte révélée (brouillard éteint, #53) [0.2] : le même tour, avec tous les morceaux des zones
@@ -83,14 +92,16 @@ BUDGETS = {
 	["révélée.textures chargées (pire moment)"] = 420,   -- [352]
 	-- [0.2, #58] fond et morceaux coupés au territoire réel, en escalier (marches et coins en
 	-- tranches) : environ 51 pièces par fond au lieu de 38 ; morceaux en bord de territoire découpés.
-	["révélée.CreateTexture"] = 600,                     -- [516]
+	-- [0.2, #62] territoire limité à la terre : plus de morceaux coupés au bord (fichiers inchangés).
+	["révélée.CreateTexture"] = 840,                     -- [730]
 	-- [0.2, #58] fond et morceaux coupés au territoire réel, en escalier (marches et coins en
 	-- tranches) : environ 51 pièces par fond au lieu de 38 ; morceaux en bord de territoire découpés.
 	["révélée.déplacement.ops par image (moyenne)"] = 240, -- [209.1]
 	-- [0.2, #55] fond limité au territoire, bord adouci qui le suit : environ 38 pièces par fond au lieu de 24.
 	-- [0.2, #58] fond et morceaux coupés au territoire réel, en escalier (marches et coins en
 	-- tranches) : environ 51 pièces par fond au lieu de 38 ; morceaux en bord de territoire découpés.
-	["révélée.déplacement.ops par image (pire)"] = 4100, -- [3617]
+	-- [0.2, #62] territoire limité à la terre : plus de morceaux coupés au bord (fichiers inchangés).
+	["révélée.déplacement.ops par image (pire)"] = 4700, -- [4073]
 
 	-- Raid de 40. [0.1.0]
 	["raid 40.ops par image"] = 112,                   -- [89.5]
@@ -137,7 +148,8 @@ BUDGETS = {
 	-- [0.2, #55] fond limité au territoire, bord adouci qui le suit : environ 38 pièces par fond au lieu de 24.
 	-- [0.2, #58] fond et morceaux coupés au territoire réel, en escalier (marches et coins en
 	-- tranches) : environ 51 pièces par fond au lieu de 38 ; morceaux en bord de territoire découpés.
-	["réouverture.SetTexture"] = 450,                   -- [398]
+	-- [0.2, #62] territoire limité à la terre : plus de morceaux coupés au bord (fichiers inchangés).
+	["réouverture.SetTexture"] = 500,                   -- [435]
 
 	-- Carte fermée. [0.1.0] Le résiduel vient de la boucle du banc lui-même.
 	["fermée.ops par image"] = 1,                       -- [0.6]

@@ -9,7 +9,9 @@ Le terrain d'une carte est découpé en carrés de 33,3 yards (MCNK des fichiers
 porte le numéro de sa zone (AreaTable.dbc). Un sous-lieu est remonté à sa zone parente ; une
 ville, une micro-carte ou une zone que Strata ne dessine pas est rattachée à la plus petite zone
 dessinée dont le rectangle (WorldMapArea.dbc) contient le carré : Hurlevent à la Forêt d'Elwynn,
-le Val d'Ammen à l'Île de Brume-Azur.
+le Val d'Ammen à l'Île de Brume-Azur. Un carré entièrement sous le niveau de la mer (fond de la
+mer, MCVT) ne compte pas : la zone se limite à sa terre, comme dans OpenMap, et la mer, les
+ornements et le cadre peints aux bords de sa carte (griffes des cartes du Norfendre) tombent dehors.
 Pour chaque zone, l'outil garde sa forme en escalier, en px de sa carte (1002 x 668) : son
 étendue est-ouest, puis, pour chacune des 4 colonnes de 256 px de la carte (celles des tuiles
 de Blizzard), l'étendue nord-sud de ses carrés. Strata y coupe le fond et les morceaux de la
@@ -37,6 +39,18 @@ MAP_W, MAP_H = 1002, 668
 TILE = 1600 / 3            # yards d'un fichier ADT
 CHUNK = TILE / 16          # yards d'un carré MCNK
 ORIGIN = 32 * TILE         # le coin du monde, en yards
+SEA = 0                    # niveau de la mer (yards) : un carré tout en dessous est le fond de la mer
+
+
+def underwater(raw, pos, head):
+    """Le carré MCNK commençant à pos est-il entièrement sous le niveau de la mer ?"""
+    ofs = struct.unpack("<I", head[20:24])[0]                 # MCVT, depuis le début du MCNK
+    z = struct.unpack("<f", head[112:116])[0]                 # hauteur de base du carré
+    at = pos + ofs
+    if raw[at:at + 4] != b"TVCM":
+        return False
+    heights = struct.unpack("<145f", raw[at + 8:at + 8 + 145 * 4])
+    return z + max(heights) < SEA
 
 
 class Client:
@@ -135,10 +149,10 @@ def main():
                 continue
             pos = raw.find(b"KNCM")
             while pos >= 0:
-                head = raw[pos + 8:pos + 8 + 0x38]
+                head = raw[pos + 8:pos + 8 + 128]
                 ix, iy = struct.unpack("<2I", head[4:12])
                 area = struct.unpack("<I", head[0x34:0x38])[0]
-                if ix < 16 and iy < 16:
+                if ix < 16 and iy < 16 and not underwater(raw, pos, head):
                     wy = ORIGIN - (tx * 16 + ix) * CHUNK     # bord ouest du carré
                     wx = ORIGIN - (ty * 16 + iy) * CHUNK     # bord nord
                     f = owner(area, map_id, wy - CHUNK / 2, wx - CHUNK / 2)
